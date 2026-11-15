@@ -451,11 +451,11 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
             problems.push("An anthropomorphic vehicle walks: give it the Walker powertrain.".into());
         }
         notes.push(if size_class <= 4 {
-            "Anthropomorphic: two drone arms and two drone legs; at Size Class 4 or less it goes anywhere a \
-             metahuman can and can use some metahuman gear."
+            "Anthropomorphic: built like a person, with a pair of arms and legs. Small enough to fit through \
+             spaces made for people, and to use some of their gear (p. 153)."
                 .into()
         } else {
-            "Anthropomorphic: two drone arms and two drone legs.".into()
+            "Anthropomorphic: built like a person, with a pair of arms and legs (p. 153).".into()
         });
     }
     if quality("environmental-adaptation") {

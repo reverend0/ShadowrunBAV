@@ -19,7 +19,7 @@ The first `tauri dev` compiles everything and takes a few minutes.
 ## The rules
 
 1. **No change is done without tests.** Each rule gets a test named after it; a bug fix gets a test that fails before the fix.
-2. **No rules text from the book.** The app is shared, so `data/design.toml` holds only names and numbers, and comments say what a rule does in our own words, briefly, with its page.
+2. **No rules text from the book.** The app is shared, so `data/design.toml` holds only names and numbers, and comments say what a rule does in our own words, briefly, with its page. Before committing text from or about the book, run `node scripts/book-text-check.mjs <book.txt>` on the book's text from your own copy (`pdftotext -layout`); it lists every run of five or more words the repo shares with it. Stat headers, rule names, and numbers are fine; reword any sentence it finds.
 3. **Run the checks before each commit:** `npm run lint`, `npm run typecheck`, `npm test`, `cargo test -p bav-core`. `npm run format` fixes most formatting.
 4. **Readable Rust.** The owner is learning Rust through this project: idiomatic code, with comments on the non-obvious parts (ownership, lifetimes, traits, error handling).
 
