@@ -1,0 +1,5 @@
+# Normalize line endings so Windows, macOS, and Linux contributors match
+* text=auto eol=lf
+*.docx binary
+*.png binary
+*.ico binary

@@ -1,0 +1,22 @@
+[package]
+name = "shadowrun-bav"
+version = "0.1.0"
+description = "Vehicle and drone builder for Shadowrun Sixth World (Double Clutch)"
+authors = ["reverend0"]
+edition = "2024"
+publish = false
+
+[lib]
+# The `_lib` suffix keeps the library name distinct from the binary name,
+# which avoids a Windows build issue: https://github.com/rust-lang/cargo/issues/8519
+name = "shadowrun_bav_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+bav-core = { path = "../crates/bav-core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }

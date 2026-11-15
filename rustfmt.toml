@@ -1,0 +1,6 @@
+# Rust formatting for every crate (`cargo fmt`). CI checks it before each
+# point release; run `cargo fmt` before committing. Wider than rustfmt's
+# default 100 columns, to match the existing code.
+edition = "2024"
+max_width = 120
+use_small_heuristics = "Max"

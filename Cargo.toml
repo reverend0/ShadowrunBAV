@@ -1,0 +1,16 @@
+# A Cargo "workspace" groups several Rust packages (crates) that build together
+# and share one `target/` directory and one `Cargo.lock`.
+#
+# - `crates/bav-core`: the design rules (catalog, calculations, design files).
+#   It has no Tauri dependency, so `cargo test` is fast.
+# - `src-tauri`: the desktop shell. It exposes bav-core to the UI.
+[workspace]
+resolver = "3"
+members = ["crates/bav-core", "src-tauri"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

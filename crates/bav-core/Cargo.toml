@@ -1,0 +1,13 @@
+[package]
+name = "bav-core"
+version = "0.1.0"
+description = "Vehicle and drone design rules from Shadowrun Sixth World's Double Clutch"
+edition = "2024"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+
+[dev-dependencies]
+serde_json = "1"

@@ -1,0 +1,26 @@
+{
+  "name": "shadowrun-bav",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check . && cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings",
+    "format": "biome check --write . && cargo fmt --all",
+    "test": "vitest run",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-dialog": "^2.8.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@tauri-apps/cli": "^2.12.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

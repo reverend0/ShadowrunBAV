@@ -1,0 +1,20 @@
+//! ShadowrunBAV's rules: designing vehicles and drones from scratch by
+//! Shadowrun Sixth World's Double Clutch ("Build Your Dream", pp. 147–157).
+//!
+//! - `catalog`: the book's tables (chassis, powertrains, consoles, design
+//!   options, quality factors), from `data/design.toml`.
+//! - `design`: a design, the player's choices.
+//! - `calc`: works a design out into stats, Build Points, cost, and tests.
+//! - `files`: reading and writing design files.
+
+pub mod calc;
+pub mod catalog;
+pub mod design;
+pub mod files;
+
+#[cfg(test)]
+mod tests;
+
+pub use calc::{Report, evaluate};
+pub use catalog::Catalog;
+pub use design::{Design, Improvements};

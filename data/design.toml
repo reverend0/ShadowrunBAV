@@ -1,0 +1,706 @@
+# Vehicle design tables from Shadowrun Sixth World's Double Clutch,
+# "Build Your Dream" (pp. 147–157). Names and numbers only: what each
+# choice does is calculated in `crates/bav-core/src/calc.rs`, and decisions
+# on where the book contradicts itself are in DESIGN.md.
+#
+# Speeds are meters per combat round. Handling is a threshold: lower is better.
+
+# Environments for Environmental Adaptation (p. 153).
+environments = ["Underwater", "Arctic", "Volcanic", "High altitude", "Outer space"]
+
+# Size classes (p. 150). Cargo is in Cargo Factors (CF): 1 CF is half a cubic
+# meter and 200 kg, so the small classes' kilograms are written as fractions
+# of a CF (1 kg = 0.005 CF).
+[[size_class]]
+class = 0
+length = "0–2 cm"
+weight = "~1 kg"
+cargo_cf = 0.0
+
+[[size_class]]
+class = 1
+length = "2–20 cm"
+weight = "10 kg"
+cargo_cf = 0.0
+
+[[size_class]]
+class = 2
+length = "21 cm–1 m"
+weight = "50 kg"
+cargo_cf = 0.005
+
+[[size_class]]
+class = 3
+length = "1–2 m"
+weight = "200 kg"
+cargo_cf = 0.025
+
+[[size_class]]
+class = 4
+length = "2–3 m"
+weight = "500 kg"
+cargo_cf = 0.1
+
+[[size_class]]
+class = 5
+length = "3–4 m"
+weight = ""
+cargo_cf = 0.25
+
+[[size_class]]
+class = 6
+length = "4–6 m"
+weight = "1,000 kg"
+cargo_cf = 0.5
+
+[[size_class]]
+class = 7
+length = "6–8 m"
+weight = "2,000 kg"
+cargo_cf = 1.0
+
+[[size_class]]
+class = 8
+length = "8–10 m"
+weight = "3,000 kg"
+cargo_cf = 4.0
+
+[[size_class]]
+class = 9
+length = "10–15 m"
+weight = "5,000 kg"
+cargo_cf = 6.0
+
+[[size_class]]
+class = 10
+length = "15–20 m"
+weight = "10,000 kg"
+cargo_cf = 10.0
+
+[[size_class]]
+class = 11
+length = "20–25 m"
+weight = "15,000 kg"
+cargo_cf = 15.0
+
+[[size_class]]
+class = 12
+length = "25–30 m"
+weight = "20,000 kg"
+cargo_cf = 20.0
+
+[[size_class]]
+class = 13
+length = "30–40 m"
+weight = "25,000 kg"
+cargo_cf = 50.0
+
+[[size_class]]
+class = 14
+length = "40–50 m"
+weight = "50,000 kg"
+cargo_cf = 100.0
+
+[[size_class]]
+class = 15
+length = "60–100 m"
+weight = "75,000 kg"
+cargo_cf = 150.0
+
+[[size_class]]
+class = 16
+length = "100–150 m"
+weight = "150,000 kg"
+cargo_cf = 250.0
+
+[[size_class]]
+class = 17
+length = "150–200 m"
+weight = "300,000 kg"
+cargo_cf = 500.0
+
+[[size_class]]
+class = 18
+length = "200–300 m"
+weight = "500,000 kg"
+cargo_cf = 1000.0
+
+[[size_class]]
+class = 19
+length = "300–500 m"
+weight = "1,000,000 kg"
+cargo_cf = 2000.0
+
+[[size_class]]
+class = 20
+length = "500 m and over"
+weight = "2,000,000 kg"
+cargo_cf = 4000.0
+
+# Chassis (p. 150). `kind` is ground, water, air, or drone; a drone's
+# `drone_size` sets its Acceleration multiplier (see `calc.rs`).
+[[chassis]]
+id = "bike"
+name = "Bike"
+kind = "ground"
+body = 4
+armor = 2
+handling = 3
+seat = 2
+build_points = 3
+size_class = 4
+
+[[chassis]]
+id = "car"
+name = "Car"
+kind = "ground"
+body = 10
+armor = 4
+handling = 3
+seat = 4
+build_points = 7
+size_class = 6
+
+[[chassis]]
+id = "van"
+name = "Van/SUV"
+kind = "ground"
+body = 12
+armor = 10
+handling = 4
+seat = 6
+build_points = 8
+size_class = 7
+
+[[chassis]]
+id = "truck"
+name = "Truck"
+kind = "ground"
+body = 14
+armor = 12
+handling = 4
+seat = 2
+build_points = 8
+size_class = 8
+extra_cargo_cf = 4.0
+
+[[chassis]]
+id = "bus"
+name = "Bus"
+kind = "ground"
+body = 16
+armor = 10
+handling = 5
+seat = 12
+build_points = 10
+size_class = 9
+
+[[chassis]]
+id = "personal-watercraft"
+name = "Personal Watercraft"
+kind = "water"
+body = 4
+armor = 2
+handling = 3
+seat = 2
+build_points = 4
+size_class = 4
+
+[[chassis]]
+id = "boat"
+name = "Boat"
+kind = "water"
+body = 10
+armor = 8
+handling = 3
+seat = 6
+build_points = 8
+size_class = 6
+
+[[chassis]]
+id = "ship"
+name = "Ship"
+kind = "water"
+body = 20
+armor = 12
+handling = 4
+seat = 12
+build_points = 16
+size_class = 12
+
+[[chassis]]
+id = "submersible"
+name = "Submersible"
+kind = "water"
+body = 10
+armor = 8
+handling = 4
+seat = 8
+build_points = 16
+size_class = 6
+underwater = true
+
+[[chassis]]
+id = "fixed-wing"
+name = "Fixed Wing"
+kind = "air"
+body = 12
+armor = 4
+handling = 5
+seat = 4
+build_points = 12
+size_class = 6
+
+[[chassis]]
+id = "rotorcraft"
+name = "Rotorcraft"
+kind = "air"
+body = 12
+armor = 8
+handling = 4
+seat = 4
+build_points = 14
+size_class = 6
+
+[[chassis]]
+id = "vtol"
+name = "VTOL/VSTOL"
+kind = "air"
+body = 14
+armor = 12
+handling = 4
+seat = 2
+build_points = 15
+size_class = 8
+
+[[chassis]]
+id = "lta"
+name = "LTA (lighter than air)"
+kind = "air"
+body = 8
+armor = 4
+handling = 4
+seat = 4
+build_points = 8
+size_class = 6
+
+[[chassis]]
+id = "drone-micro"
+name = "Drone, Micro"
+kind = "drone"
+drone_size = "micro"
+body = 0
+armor = 0
+handling = 3
+seat = 0
+build_points = 4
+size_class = 0
+
+[[chassis]]
+id = "drone-mini"
+name = "Drone, Mini"
+kind = "drone"
+drone_size = "mini"
+body = 1
+armor = 0
+handling = 3
+seat = 0
+build_points = 6
+size_class = 1
+
+[[chassis]]
+id = "drone-small"
+name = "Drone, Small"
+kind = "drone"
+drone_size = "small"
+body = 2
+armor = 1
+handling = 3
+seat = 0
+build_points = 8
+size_class = 2
+
+[[chassis]]
+id = "drone-medium"
+name = "Drone, Medium"
+kind = "drone"
+drone_size = "medium"
+body = 4
+armor = 6
+handling = 3
+seat = 0
+build_points = 10
+size_class = 3
+
+[[chassis]]
+id = "drone-large"
+name = "Drone, Large"
+kind = "drone"
+drone_size = "large"
+body = 8
+armor = 6
+handling = 4
+seat = 0
+build_points = 12
+size_class = 4
+
+# Powertrains (p. 150). `medium` is ground, water, or air; `handling` and
+# `off_road_handling` change Handling (lower is better).
+[[powertrain]]
+id = "wheeled"
+name = "Wheeled"
+medium = "ground"
+acceleration = 15
+speed_interval = 20
+top_speed = 250
+build_points = 10
+
+[[powertrain]]
+id = "tracked"
+name = "Tracked"
+medium = "ground"
+acceleration = 10
+speed_interval = 25
+top_speed = 150
+build_points = 12
+off_road_handling = -2
+
+[[powertrain]]
+id = "walker"
+name = "Walker"
+medium = "ground"
+acceleration = 10
+speed_interval = 15
+top_speed = 30
+build_points = 15
+no_top_speed_loss = true
+
+[[powertrain]]
+id = "hover"
+name = "Hover"
+medium = "ground"
+acceleration = 15
+speed_interval = 45
+top_speed = 120
+build_points = 12
+handling = -2
+
+[[powertrain]]
+id = "propeller-water"
+name = "Propeller (Water)"
+medium = "water"
+acceleration = 10
+speed_interval = 15
+top_speed = 100
+build_points = 12
+
+[[powertrain]]
+id = "jet-water"
+name = "Jet (Water)"
+medium = "water"
+acceleration = 10
+speed_interval = 25
+top_speed = 150
+build_points = 20
+
+[[powertrain]]
+id = "sail"
+name = "Sail"
+medium = "water"
+acceleration = 5
+speed_interval = 5
+top_speed = 20
+build_points = 8
+
+[[powertrain]]
+id = "propeller-air"
+name = "Propeller (Air)"
+medium = "air"
+acceleration = 15
+speed_interval = 25
+top_speed = 300
+build_points = 50
+
+[[powertrain]]
+id = "jet-air"
+name = "Jet (Air)"
+medium = "air"
+acceleration = 20
+speed_interval = 40
+top_speed = 400
+build_points = 75
+
+[[powertrain]]
+id = "vectored-thrust"
+name = "Vectored Thrust"
+medium = "air"
+acceleration = 40
+speed_interval = 60
+top_speed = 500
+build_points = 100
+
+[[powertrain]]
+id = "glide"
+name = "Glide"
+medium = "air"
+acceleration = 15
+speed_interval = 25
+top_speed = 150
+build_points = 5
+
+[[powertrain]]
+id = "rotor"
+name = "Rotor"
+medium = "air"
+acceleration = 15
+speed_interval = 25
+top_speed = 350
+build_points = 70
+
+[[powertrain]]
+id = "gravtech"
+name = "Gravtech"
+medium = "air"
+acceleration = 20
+speed_interval = 200
+top_speed = 1000
+build_points = 1000
+
+# Consoles (electronics packages, p. 150).
+[[console]]
+id = "basic"
+name = "Basic"
+pilot = 1
+sensor = 1
+build_points = 3
+
+[[console]]
+id = "intermediate"
+name = "Intermediate"
+pilot = 2
+sensor = 2
+build_points = 5
+
+[[console]]
+id = "expert"
+name = "Expert"
+pilot = 3
+sensor = 3
+build_points = 8
+
+[[console]]
+id = "advanced"
+name = "Advanced"
+pilot = 4
+sensor = 4
+build_points = 14
+
+# Functional improvements (design options, pp. 151–152): Build Points per
+# level, and the most levels the book allows (0 when the limit depends on the
+# vehicle; see `calc.rs`). Negative levels are the improvement in reverse.
+[[improvement]]
+id = "body"
+name = "Improved Body"
+per_level = 4
+max_level = 4
+
+[[improvement]]
+id = "armor"
+name = "Improved Armor"
+per_level = 2
+max_level = 0
+
+[[improvement]]
+id = "handling"
+name = "Improved Handling"
+per_level = 5
+max_level = 3
+
+[[improvement]]
+id = "handling_on_road"
+name = "Improved Handling (on road only)"
+per_level = 3
+max_level = 3
+
+[[improvement]]
+id = "handling_off_road"
+name = "Improved Handling (off road only)"
+per_level = 3
+max_level = 3
+
+[[improvement]]
+id = "seating"
+name = "Improved Seating"
+per_level = 2
+max_level = 0
+
+[[improvement]]
+id = "size"
+name = "Improved Size"
+per_level = 4
+max_level = 0
+
+[[improvement]]
+id = "acceleration"
+name = "Improved Acceleration"
+per_level = 5
+max_level = 2
+
+[[improvement]]
+id = "speed_interval"
+name = "Improved Speed Interval"
+per_level = 5
+max_level = 3
+
+[[improvement]]
+id = "top_speed"
+name = "Improved Top Speed"
+per_level = 5
+max_level = 3
+
+[[improvement]]
+id = "cargo"
+name = "Improved Cargo Space"
+per_level = 2
+max_level = 3
+
+[[improvement]]
+id = "easily_modified"
+name = "Easily Modified"
+per_level = 4
+max_level = 4
+
+# Design modifications (pp. 152–153). A `group` holds choices that exclude
+# each other (one engine type; heavy duty or lightweight).
+[[modification]]
+id = "cargo-hauler"
+name = "Cargo Hauler"
+build_points = 20
+
+[[modification]]
+id = "heavy-duty"
+name = "Heavy Duty"
+group = "build"
+build_points = 10
+
+[[modification]]
+id = "lightweight"
+name = "Lightweight"
+group = "build"
+build_points = -10
+
+[[modification]]
+id = "racing-engine"
+name = "Racing Engine"
+group = "engine"
+build_points = 25
+
+[[modification]]
+id = "high-performance-engine"
+name = "High Performance Engine"
+group = "engine"
+build_points = 15
+
+[[modification]]
+id = "economy-engine"
+name = "Economy Engine"
+group = "engine"
+build_points = -15
+
+[[modification]]
+id = "integrated-armor"
+name = "Integrated Armor"
+build_points = 20
+
+[[modification]]
+id = "mass-transit"
+name = "Mass Transit"
+build_points = 10
+
+[[modification]]
+id = "multi-engine"
+name = "Multi-Engine"
+build_points = 25
+
+[[modification]]
+id = "off-road-chassis"
+name = "Off Road Chassis"
+build_points = 5
+
+[[modification]]
+id = "underpowered"
+name = "Underpowered"
+build_points = -20
+
+# Quality factors (pp. 153–154): cost multipliers, which multiply together.
+# `group` holds choices that exclude each other. `availability` and
+# `legality` add to the base Availability (p. 155).
+[[quality]]
+id = "anthropomorphic"
+name = "Anthropomorphic"
+multiplier = 2.0
+
+[[quality]]
+id = "cutting-edge"
+name = "Cutting Edge"
+multiplier = 10.0
+
+[[quality]]
+id = "drone"
+name = "Drone"
+multiplier = 0.5
+
+[[quality]]
+id = "environmental-adaptation"
+name = "Environmental Adaptation"
+multiplier = 2.0
+
+[[quality]]
+id = "mass-produced"
+name = "Mass Produced"
+group = "production"
+multiplier = 0.5
+
+[[quality]]
+id = "one-off-custom"
+name = "One-off Custom"
+group = "production"
+multiplier = 2.0
+
+[[quality]]
+id = "junkyard-frankenstein"
+name = "Junkyard Frankenstein"
+group = "production"
+multiplier = 0.5
+
+[[quality]]
+id = "specialized-function"
+name = "Specialized Function"
+multiplier = 2.0
+
+[[quality]]
+id = "luxury"
+name = "Luxury"
+multiplier = 1.5
+availability = 1
+
+[[quality]]
+id = "security"
+name = "Security"
+group = "service"
+multiplier = 2.0
+availability = 1
+legality = "L"
+
+[[quality]]
+id = "military"
+name = "Military"
+group = "service"
+multiplier = 3.0
+availability = 2
+legality = "I"
+
+[[quality]]
+id = "superstructure"
+name = "Superstructure"
+multiplier = 3.0
