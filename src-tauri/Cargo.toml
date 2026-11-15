@@ -1,6 +1,6 @@
 [package]
 name = "shadowrun-bav"
-version = "0.1.0"
+version = "0.1.1"
 description = "Vehicle and drone builder for Shadowrun Sixth World (Double Clutch)"
 authors = ["reverend0"]
 edition = "2024"
