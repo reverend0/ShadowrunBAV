@@ -14,6 +14,7 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
 - Version 1: designing from scratch ("Build Your Dream").
 - Not yet: "Making It Yours" (pp. 119–146): mod slots and the roughly 80 aftermarket mods (accessories, chassis, powertrain, electronics, weapon mounts, secondary propulsion, vehicle cyberware), on a design or on a stock vehicle typed in. The design rules let a mod be built in as a design option at 2 Build Points per mod slot, plus the mod's price, so this comes next (see "Future features").
 - Not covered: the book's stock vehicles. Their stats would be the book's data; a stock vehicle would be typed in when mods arrive.
+- Open source under the MIT License (decided, 2026-11-15).
 
 ## Stack
 

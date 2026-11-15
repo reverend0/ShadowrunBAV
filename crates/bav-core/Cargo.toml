@@ -3,6 +3,7 @@ name = "bav-core"
 version = "0.1.0"
 description = "Vehicle and drone design rules from Shadowrun Sixth World's Double Clutch"
 edition = "2024"
+license = "MIT"
 publish = false
 
 [dependencies]

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Vehicle and drone builder for Shadowrun Sixth World (Double Clutch)"
 authors = ["reverend0"]
 edition = "2024"
+license = "MIT"
 publish = false
 
 [lib]

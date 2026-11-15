@@ -23,4 +23,8 @@ Installers are on the [Releases](../../releases) page. They aren't code-signed, 
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## License
+
+The app is open source under the [MIT License](LICENSE): use, change, and share it freely, keeping the copyright notice. Contributions are welcome; see CONTRIBUTING.md.
+
 Shadowrun is a trademark of The Topps Company, Inc. This is an unofficial fan tool, not affiliated with Topps or Catalyst Game Labs.
