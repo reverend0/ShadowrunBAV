@@ -71,6 +71,7 @@ Where the book contradicts itself or leaves something open, the owner decided (2
 - Rounding down applies to halving the speed modifier: Example 2's Acceleration is 40 − 9 = 31 (34 with its high performance engine, 68 with multi-engine), not the example's 30.
 - Walker: the powertrain table's values (Acceleration 10, Speed Interval 15, Top Speed 30, 15 Build Points), not Example 3's 10, 40, and 10. Nothing else in Example 3 changes speed, and the secondary propulsion Walker (p. 137) agrees with the table.
 - High Performance Engine: 15 Build Points, as its entry says; Example 2 charged 25 (the Racing Engine's), so its total is 163, not 173.
+- The design test's threshold, Build Point Value ÷ 5 (and ÷ 2 or ÷ 4 for a week or a month), rounds up, as Examples 1 and 2 do (53 gives 11; 173 gives 35, 18 by the week). Example 3 rounds its 67 down to 13.
 - Underpowered halves Top Speed only.
 - The small-drone Acceleration multiplier comes right after the speed modifier, before the engine type and Multi-Engine.
 - Quality factors apply to the Build Point Value everywhere, so the design test's threshold uses the multiplied value (Junkyard Frankenstein is labeled "× 0.5 BP").

@@ -71,7 +71,12 @@ fn example_2_lav_rounds_the_acceleration_loss_down() {
     assert_eq!(r.stats.pilot, 3);
     assert_eq!(r.stats.sensor, 3);
     assert_eq!(r.base_points, 15 + 100 + 15 + 25 + 8);
+    assert_eq!(r.build_point_value, 163); // no quality factors
+    assert_eq!(r.cost, 163_000);
+    assert_eq!(r.parts_cost, 81_500);
     assert_eq!(r.availability, "3"); // 2, +1 for an aircraft
+    // 163 ÷ 5 = 32.6, rounded up to 33; ÷ 2 for a week, 17; ÷ 4 for a month, 9.
+    assert_eq!((r.design_test.day, r.design_test.week, r.design_test.month), (33, 17, 9));
 }
 
 #[test]
@@ -95,6 +100,12 @@ fn example_3_walker_drone_uses_the_powertrain_table() {
     assert_eq!(r.multiplier, 1.0);
     assert_eq!(r.base_points, 10 + 15 + 14 + 8 + 5 + 20);
     assert_eq!(r.build_point_value, 72);
+    assert_eq!(r.cost, 72_000);
+    assert_eq!(r.parts_cost, 36_000);
+    assert_eq!(r.availability, "2");
+    // 72 ÷ 5 = 14.4, rounded up to 15 (decided: the example rounds its
+    // 67 ÷ 5 down to 13, where Examples 1 and 2 round up); 8 by the week.
+    assert_eq!((r.design_test.day, r.design_test.week, r.design_test.month), (15, 8, 4));
     assert_eq!(r.stat_line.values[8], "—"); // a drone's Seat
 }
 
