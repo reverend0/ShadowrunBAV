@@ -1,6 +1,6 @@
 # Contributing to ShadowrunBAV
 
-`DESIGN.md` is the source of truth for what the app does and why, including every rules decision where *Double Clutch* contradicts itself. Read the parts that touch your change first, and record new decisions there.
+`DESIGN.md` is the source of truth for what the app does and why. `RULINGS.md` lists every place *Double Clutch* contradicts itself or its examples and what the app does instead. Read the parts that touch your change first, and record new decisions there: a ruling on the book goes in `RULINGS.md`, numbered, with a test.
 
 ## Setting up
 

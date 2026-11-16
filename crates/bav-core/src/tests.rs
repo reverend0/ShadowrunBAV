@@ -1,6 +1,6 @@
 //! Tests for the design rules, one per rule, named after it. The three
 //! build examples from Double Clutch (pp. 155–156) are here as the book's
-//! numbers, corrected where DESIGN.md's "Rules decisions" say the example
+//! numbers, corrected where RULINGS.md says the example
 //! is wrong.
 
 use crate::calc::{cargo_text, thousands};

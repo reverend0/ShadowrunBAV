@@ -4,7 +4,7 @@
 //!
 //! `calc::evaluate` works out the designed vehicle first (its "factory"
 //! stats), then hands them here. Where the book contradicts itself, the
-//! choice made is recorded in DESIGN.md ("Rules decisions").
+//! choice made is recorded in RULINGS.md.
 
 use serde::Serialize;
 

@@ -1,7 +1,7 @@
 # Vehicle design tables from Shadowrun Sixth World's Double Clutch,
 # "Build Your Dream" (pp. 147–157). Names and numbers only: what each
 # choice does is calculated in `crates/bav-core/src/calc.rs`, and decisions
-# on where the book contradicts itself are in DESIGN.md.
+# on where the book contradicts itself are in RULINGS.md.
 #
 # Speeds are meters per combat round. Handling is a threshold: lower is better.
 

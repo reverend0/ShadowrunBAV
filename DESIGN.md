@@ -96,51 +96,7 @@ The vehicle as ShadowrunEdit's `sr6-vehicle` block lays it out (`block.rs`), so 
 
 ## Rules decisions
 
-Where the book contradicts itself or leaves something open, the owner decided (2026-11-15):
-
-- Top Speed: the speed modifier × 10 comes off the powertrain's base Top Speed. The rule's "base Acceleration" is a typo; every example uses Top Speed.
-- The final Body sets the speed modifier, Improved Body (and Improved Size, Heavy Duty, Lightweight) included. Example 1 lowers Body to 9 but works its speed with Body 10 (Top Speed 160, Acceleration 11; its final stats say Body 10), so it's a slip: with Body 9 its Top Speed is 170, 270 with its racing engine.
-- Rounding down applies to halving the speed modifier: Example 2's Acceleration is 40 − 9 = 31 (34 with its high performance engine, 68 with multi-engine), not the example's 30.
-- Walker: the powertrain table's values (Acceleration 10, Speed Interval 15, Top Speed 30, 15 Build Points), not Example 3's 10, 40, and 10. Nothing else in Example 3 changes speed, and the secondary propulsion Walker (p. 137) agrees with the table.
-- High Performance Engine: 15 Build Points, as its entry says; Example 2 charged 25 (the Racing Engine's), so its total is 163, not 173.
-- The design test's threshold, Build Point Value ÷ 5 (and ÷ 2 or ÷ 4 for a week or a month), rounds up, as Examples 1 and 2 do (53 gives 11; 173 gives 35, 18 by the week). Example 3 rounds its 67 down to 13.
-- Handling and Speed Interval are at least 1: the book gives no floor, and Handling is a test's threshold. Reverse options (p. 151) can otherwise take them to 0 or below (a car on hover with Improved Handling 3; a sail with Improved Speed Interval −3).
-- Underpowered halves Top Speed only.
-- The small-drone Acceleration multiplier comes right after the speed modifier, before the engine type and Multi-Engine.
-- Quality factors apply to the Build Point Value everywhere, so the design test's threshold uses the multiplied value (Junkyard Frankenstein is labeled "× 0.5 BP").
-- The console table's Special column (10, 12, --, --) is a layout error and left out, and so is the stray "0" at the end of the chassis table's Bike row.
-
-Mods (decided 2026-11-15):
-
-- Increased Structural Integrity's rating is up to half the factory Body, as its example and its box say (a Body 4 bike gets 2), not 1.5 × as its sentence reads.
-- Improved Pilot's rating replaces the Pilot, 1 to 9, as its text says (its box says "–", and the 1–9 sits in xGuide Override's box, a mod with no rating); its slots and price are for the full rating. Enhanced Sensors works the same way for Sensor.
-- Medevac Modifications cost a flat 3,500¥: it has no rating, so its "× Rating" is a slip.
-- Improved Economy/Capacity takes a slot per rating ("1–3").
-- Gun Ports take 0.5 slots each: the box's "Rating 0.5" is the slots in the wrong column.
-- Weapon mounts are priced by their table. Example 1's 7,300¥ of mods and Example 3's 33,000¥ leave them out.
-- Run-flat on racing or off-road tires is +50% of their price, as the tires' entry says, not Example 1's 1,800¥ (racing tires plus run-flat tires).
-- A built-in mod uses the vehicle's mod slots too, as well as its 2 Build Points a slot.
-- Built-in mods add their Build Points: Example 3's 67 leaves out the 12 it gives for Realistic Features 4 and Chameleon Coating 2, so it's 84 (79 with its walker at 10).
-
-Assumed, not yet confirmed with the owner (each is one place in `calc.rs` or `mods.rs`, with a test):
-
-- The chassis table's Special column is kept for the Truck (+4 CF cargo) and the Submersible (built for underwater use).
-- Heavy Duty and Lightweight apply after Improved Body and Improved Size.
-- Improved Size's +50% seats apply after Improved Seating, and its cargo is the new Size Class's.
-- Cargo Hauler halves the High Performance Engine's and Multi-Engine's bonuses, as written, and not the Racing Engine's.
-- Off Road Chassis's −10 Top Speed comes with the engine type, before Multi-Engine.
-- A drone chassis always has the Drone quality; it isn't a choice.
-- An aircraft, for Availability, is an air chassis or an air powertrain.
-- Easily Modified has no reverse, and its limit uses the chassis's Body.
-- The takeoff and landing profiles (long, short, VTOL) and operation time aren't calculated: the book doesn't tie them to a chassis or a cost.
-- Forms: a bike and a personal watercraft start open, drones totally enclosed, everything else standard.
-- Standard armor costs a walker Top Speed too: the armor rule (p. 133) has no exception, unlike the design's speed modifier.
-- Improved Acceleration and Top Speed Increase add a share of the designed vehicle's own Acceleration and Top Speed, each rank rounded up (Improved Acceleration 2 on Acceleration 11 is +8, not 30% × 2 = 6.6 rounded to 7).
-- Easy Assembly's ⅓ Body and Powered Breakdown's ½ Body slots round up (Easy Assembly says so; Powered Breakdown doesn't).
-- Anti-theft rating 1 comes with any Pilot, so it's free.
-- Living space costs a month of its lifestyle per occupant at the core rulebook's prices (Squatter 500¥, Low 2,000¥, Middle 5,000¥, High 10,000¥, Luxury 100,000¥).
-- Increased Seating takes cargo space (1 CF a seat); the "or 0.5 slots" in its box is the cargo space Increased Cargo Space would make, so it's added that way.
-- Elemental hardening has no Availability (its box says "--").
+Every place the book disagrees with itself or with its examples, what the app does instead, the examples corrected, and the assumptions not yet confirmed are in [RULINGS.md](RULINGS.md), numbered R1, R2, and so on. A new ruling goes there, with a test, and "(decided)" in this file points to one.
 
 ## Testing
 

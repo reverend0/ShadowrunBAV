@@ -2,7 +2,7 @@
 //! tests, by Double Clutch's "Build Your Dream" rules (pp. 147–157).
 //!
 //! Where the book contradicts itself, or leaves something open, the choice
-//! made here is recorded in DESIGN.md ("Rules decisions"). All division
+//! made here is recorded in RULINGS.md. All division
 //! rounds down unless a comment says otherwise.
 
 use serde::Serialize;
@@ -227,7 +227,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     // `problems` can be used directly from here on.
 
     // Handling is a test's threshold, so it's at least 1 (decided; see
-    // DESIGN.md). `&mut` lets the loop change both values in place.
+    // RULINGS.md, R7). `&mut` lets the loop change both values in place.
     for (value, road) in [(&mut handling_on_road, "on road"), (&mut handling_off_road, "off road")] {
         if *value < 1 {
             problems.push(format!("Handling {road} is {}: it can't be below 1. It's shown as 1.", *value));
@@ -296,7 +296,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     }
 
     // Small drones multiply their Acceleration, before the engine steps
-    // (decided; see DESIGN.md).
+    // (RULINGS.md, R9).
     let drone_factor = match chassis.drone_size {
         Some(DroneSize::Small) => Some((3, 4, "× 0.75 (small drone)")),
         Some(DroneSize::Mini) => Some((1, 2, "× 0.5 (mini drone)")),

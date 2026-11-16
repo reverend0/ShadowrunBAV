@@ -1,7 +1,7 @@
 # Vehicle modifications from Shadowrun Sixth World's Double Clutch,
 # "Making It Yours" (pp. 120–144). Names and numbers only: what each mod
 # does is calculated in `crates/bav-core/src/mods.rs`, and decisions on
-# where the book contradicts itself are in DESIGN.md.
+# where the book contradicts itself are in RULINGS.md.
 #
 # Fields (all but id, name, group, and slot_type are optional):
 #   group             where the window lists it; "accessory" mods use no slots
