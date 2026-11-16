@@ -1,8 +1,9 @@
 //! Tests for the mod rules ("Making It Yours", pp. 120–144), one per rule,
 //! named after it, with the book's examples where they add mods.
 
+use crate::block::BlockLine;
 use crate::catalog::Catalog;
-use crate::design::{Design, Improvements, InstalledMod};
+use crate::design::{Design, Improvements, InstalledMod, Layout, Weapon};
 use crate::files;
 use crate::mods::install_test;
 use crate::{Report, evaluate};
@@ -442,13 +443,158 @@ fn a_design_file_keeps_its_mods_and_an_older_file_has_none() {
     assert!(files::from_text("format = 1\nchassis = \"car\"\n").unwrap().mods.is_empty());
 }
 
+// The stat block, as ShadowrunEdit lays one out.
+
+/// A weapon, typed in: name, type, DV, modes, Attack Ratings, mods, mount.
+fn weapon(name: &str, ar: [i32; 5], mount: &str) -> Weapon {
+    Weapon {
+        name: name.into(),
+        weapon_type: "Assault Rifles".into(),
+        dv: "4P".into(),
+        mode: "SA/BF/FA".into(),
+        ar: ar.to_vec(),
+        mods: "smartgun system".into(),
+        mount: mount.into(),
+    }
+}
+
+fn line<'a>(r: &'a Report, label: &str) -> Option<&'a BlockLine> {
+    r.block.lines.iter().find(|l| l.label == label)
+}
+
+#[test]
+fn every_mod_is_standard_equipment_in_name_order_lowercase_but_the_first() {
+    // Decided: built in or installed afterward, the mods are the vehicle's
+    // standard equipment. A rating follows the name; a count and a note go
+    // in parentheses.
+    let mut d = with_installed(
+        car(),
+        &[("spoof-kit", 0, 1, false), ("standard-weapon-mount", 0, 2, true), ("ram-plating", 2, 1, false)],
+    );
+    d.mods[1].note = "roof".into();
+    let r = run(&d);
+    let equipment = line(&r, "Standard Equipment").expect("a Standard Equipment line");
+    assert_eq!(equipment.entries, ["RAM plating 2", "spoof kit", "standard weapon mount (2, roof)"]);
+}
+
+#[test]
+fn acronyms_and_names_keep_their_capitals() {
+    use crate::block::lowercase_words;
+    assert_eq!(lowercase_words("Electronic Countermeasures (ECM)"), "electronic countermeasures (ECM)");
+    assert_eq!(lowercase_words("xGuide Override"), "xGuide override");
+    assert_eq!(lowercase_words("Pilot-By-Wire"), "pilot-by-wire");
+    assert_eq!(lowercase_words("Valkyrie Module"), "Valkyrie module");
+    assert_eq!(lowercase_words("Multi-Terrain Suspension (Static)"), "multi-terrain suspension (static)");
+}
+
+#[test]
+fn a_gear_book_block_has_avail_and_cost_and_standard_equipment() {
+    let r = run(&with(car(), &["spoof-kit"]));
+    assert_eq!(r.block.main.headers.last().map(String::as_str), Some("Cost"));
+    assert!(r.block.derived.is_none());
+    assert!(line(&r, "Standard Equipment").is_some());
+}
+
+#[test]
+fn a_gamemaster_block_has_a_derived_row_and_equipment() {
+    let mut d = with(car(), &["spoof-kit"]);
+    d.layout = Layout::Gamemaster;
+    let r = run(&d);
+    assert_eq!(r.block.main.headers.last().map(String::as_str), Some("Seat"));
+    let derived = r.block.derived.as_ref().expect("a derived row");
+    // Armor 4 and Pilot 1; a vehicle's Initiative is its driver's; Body 10
+    // gives CM 13.
+    assert_eq!(derived.values, ["+4 (5)", "—", "—", "13"]);
+    assert!(line(&r, "Equipment").is_some());
+    assert!(line(&r, "Standard Equipment").is_none());
+}
+
+#[test]
+fn a_drone_acts_on_its_own_with_pilot_times_2_and_4d6() {
+    let mut d = design("drone-medium", "wheeled", "expert"); // Pilot 3
+    d.layout = Layout::Gamemaster;
+    let derived = run(&d).block.derived.expect("a derived row");
+    assert_eq!((derived.values[1].as_str(), derived.values[2].as_str()), ("6/4", "A1, I5"));
+}
+
+#[test]
+fn a_mounted_weapon_gets_plus_2_attack_ratings_and_the_mounts_ammunition() {
+    let mut d = with(car(), &["standard-turreted-weapon-mount", "large-hardpoint"]);
+    d.weapons = vec![weapon("Ares Alpha", [3, 10, 9, 6, 2], "standard-turreted-weapon-mount")];
+    let r = run(&d);
+    assert!(r.problems.is_empty(), "{:?}", r.problems);
+    let weapons = line(&r, "Weapons").expect("a Weapons line");
+    assert!(weapons.one_per_line);
+    assert_eq!(
+        weapons.entries,
+        ["Ares Alpha [Assault Rifles, DV 4P, SA/BF/FA, 250(c), 5/12/11/8/4, w/ smartgun system] (standard turret)"]
+    );
+}
+
+#[test]
+fn an_attack_rating_out_of_range_stays_an_em_dash() {
+    let w = weapon("Shotgun", [8, 4, 0, 0, 0], "small-weapon-mount");
+    assert!(crate::block::weapon_line(&w).contains("100(c), 10/6/—/—/—"));
+}
+
+#[test]
+fn weapons_are_listed_in_name_order() {
+    let mut d = with_installed(car(), &[("standard-weapon-mount", 0, 2, false)]);
+    d.weapons = vec![weapon("Zeta", [1; 5], "standard-weapon-mount"), weapon("alpha", [1; 5], "standard-weapon-mount")];
+    let r = run(&d);
+    assert!(line(&r, "Weapons").unwrap().entries[0].starts_with("alpha"));
+}
+
+#[test]
+fn a_weapon_needs_a_weapon_mount_of_its_own() {
+    let mut d = car();
+    d.weapons = vec![weapon("Ares Alpha", [1; 5], "")];
+    assert!(has_problem(&run(&d), "Ares Alpha needs a weapon mount"));
+    let mut d = with(car(), &["standard-weapon-mount"]);
+    d.weapons = vec![weapon("A", [1; 5], "standard-weapon-mount"), weapon("B", [1; 5], "standard-weapon-mount")];
+    assert!(has_problem(&run(&d), "2 weapons are in a standard mount, and the vehicle has 1"));
+}
+
+#[test]
+fn copy_gives_the_block_as_text_to_paste_into_shadowrunedit() {
+    let mut d = with(car(), &["standard-weapon-mount"]);
+    d.name = "Getaway Car".into();
+    d.weapons = vec![weapon("Ares Alpha", [3, 10, 9, 6, 2], "standard-weapon-mount")];
+    let text = run(&d).block.text;
+    assert!(text.starts_with(
+        "Getaway Car (car)\nHand\tAccel\tSpd Int\tTop Spd\tBody\tArmor\tPilot\tSensor\tSeat\tAvail\tCost\n"
+    ));
+    assert!(text.contains("\nStandard Equipment: Standard weapon mount\nWeapons:\n\tAres Alpha [Assault Rifles"));
+}
+
+#[test]
+fn a_design_file_keeps_its_weapons_and_layout() {
+    let mut d = with(car(), &["standard-weapon-mount"]);
+    d.layout = Layout::Gamemaster;
+    d.weapons = vec![weapon("Ares Alpha", [3, 10, 9, 6, 2], "standard-weapon-mount")];
+    assert_eq!(files::from_text(&files::to_text(&d)).unwrap(), d);
+}
+
 // The PDF sheet.
 
 #[test]
-fn the_sheet_lists_the_mods_as_standard_equipment() {
-    let d = with_installed(car(), &[("spoof-kit", 0, 1, false), ("standard-weapon-mount", 0, 2, false)]);
+fn the_sheet_prints_the_block_with_bold_labels() {
+    let mut d = with_installed(car(), &[("spoof-kit", 0, 1, false), ("standard-weapon-mount", 0, 2, false)]);
+    d.weapons = vec![weapon("Ares Alpha", [3, 10, 9, 6, 2], "standard-weapon-mount")];
     let bytes = crate::pdf::vehicle_sheet(&d, Catalog::builtin()).unwrap();
     let text = String::from_utf8(bytes).unwrap();
-    // The × is byte 0xD7 in the fonts' encoding, written as octal 327.
-    assert!(text.contains(r"(Standard Equipment: Spoof Kit, Standard Weapon Mount \3272) Tj"));
+    // The label in bold (F2), its entries in regular (F1).
+    assert!(text.contains("/F2 10 Tf") && text.contains(r"(Standard Equipment: ) Tj"));
+    assert!(text.contains(r"(Spoof kit, standard weapon mount \(2\)) Tj"));
+    assert!(text.contains("(Weapons:) Tj"));
+    assert!(text.contains(r"(Ares Alpha [Assault Rifles, DV 4P, SA/BF/FA, 250\(c\)"));
+}
+
+#[test]
+fn a_gamemaster_sheet_prints_the_derived_row() {
+    let mut d = car();
+    d.layout = Layout::Gamemaster;
+    let text = String::from_utf8(crate::pdf::vehicle_sheet(&d, Catalog::builtin()).unwrap()).unwrap();
+    assert!(text.contains("(DR) Tj") && text.contains("(I/ID) Tj") && text.contains(r"(+4 \(5\)) Tj"));
+    assert!(!text.contains("(COST) Tj"));
 }

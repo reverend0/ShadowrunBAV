@@ -11,7 +11,7 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 use crate::calc::{Report, evaluate, thousands};
-use crate::catalog::{Catalog, Chassis, Kind};
+use crate::catalog::Catalog;
 use crate::design::Design;
 use crate::files;
 use crate::mods::number;
@@ -21,22 +21,6 @@ const PAGE_WIDTH: f32 = 612.0;
 const PAGE_HEIGHT: f32 = 792.0;
 const MARGIN: f32 = 54.0;
 const TEXT_WIDTH: f32 = PAGE_WIDTH - 2.0 * MARGIN;
-
-/// The book's stat table headers, in the order of `Report::stat_line`. Some
-/// are printed on two lines (SPD over INT).
-const HEADERS: [(&str, &str); 11] = [
-    ("HAND", ""),
-    ("ACC", ""),
-    ("SPD", "INT"),
-    ("TOP", "SPD"),
-    ("BODY", ""),
-    ("ARM", ""),
-    ("PILOT", ""),
-    ("SENS", ""),
-    ("SEAT", ""),
-    ("AVAIL", ""),
-    ("COST", ""),
-];
 
 /// Writes a design's vehicle sheet to a `.pdf` file.
 pub fn export(path: &Path, design: &Design, catalog: &Catalog) -> Result<(), String> {
@@ -48,27 +32,31 @@ pub fn export(path: &Path, design: &Design, catalog: &Catalog) -> Result<(), Str
 /// The vehicle sheet's PDF, as bytes.
 pub fn vehicle_sheet(design: &Design, catalog: &Catalog) -> Result<Vec<u8>, String> {
     let report = evaluate(design, catalog)?;
-    // `evaluate` succeeded, so the chassis exists; `ok_or` turns a `None`
-    // into an error anyway rather than panicking.
-    let chassis = catalog.chassis(&design.chassis).ok_or("Unknown chassis")?;
-    let name = if design.name.trim().is_empty() { "Untitled vehicle" } else { design.name.trim() };
+    let block = &report.block;
 
     let mut sheet = Sheet::new();
 
-    // The entry, as the book prints one.
-    sheet.paragraph(Font::Bold, 18.0, name);
-    let mut kind = vehicle_type(chassis);
-    if !design.specialized_function.trim().is_empty() {
-        kind = format!("{kind}, {}", design.specialized_function.trim());
-    }
-    sheet.paragraph(Font::Italic, 11.0, &format!("({kind})"));
+    // The entry: the stat block, as the book prints one.
+    sheet.paragraph(Font::Bold, 18.0, &block.title);
+    sheet.paragraph(Font::Italic, 11.0, &format!("({})", block.detail));
     sheet.gap(10.0);
-    sheet.stat_table(&report);
-    // The mods, as the book lists a vehicle's: "Standard Equipment: …".
-    if !report.mods.lines.is_empty() {
+    sheet.stat_table(&book_headers(&block.main.headers), &block.main.values);
+    if let Some(derived) = &block.derived {
         sheet.gap(6.0);
-        let mods: Vec<&str> = report.mods.lines.iter().map(|line| line.label.as_str()).collect();
-        sheet.paragraph(Font::Regular, 10.0, &format!("Standard Equipment: {}", mods.join(", ")));
+        sheet.stat_table(&book_headers(&derived.headers), &derived.values);
+    }
+    // Its lines: "Standard Equipment: …" (or "Equipment"), and Weapons one
+    // per line, the labels bold.
+    for line in &block.lines {
+        sheet.gap(6.0);
+        if line.one_per_line {
+            sheet.paragraph(Font::Bold, 10.0, &format!("{}:", line.label));
+            for entry in &line.entries {
+                sheet.labeled(None, entry);
+            }
+        } else {
+            sheet.labeled(Some(&format!("{}: ", line.label)), &line.entries.join(", "));
+        }
     }
     if let Some(s) = &report.mods.secondary {
         sheet.paragraph(
@@ -103,27 +91,24 @@ pub fn vehicle_sheet(design: &Design, catalog: &Catalog) -> Result<Vec<u8>, Stri
         }
     }
 
-    Ok(document(name, &sheet.pages))
+    Ok(document(&block.title, &sheet.pages))
 }
 
-/// The type in an entry's parentheses: the chassis in lowercase, keeping
-/// acronyms ("van/SUV", "LTA (lighter than air)"), and "medium drone" for
-/// "Drone, Medium".
-pub(crate) fn vehicle_type(chassis: &Chassis) -> String {
-    if chassis.kind == Kind::Drone
-        && let Some((_, size)) = chassis.name.split_once(", ")
-    {
-        return format!("{} drone", size.to_lowercase());
-    }
-    // `split_inclusive` keeps each separator with the word before it, so
-    // joining the pieces back gives the original spacing.
-    chassis
-        .name
-        .split_inclusive([' ', '/'])
-        .map(|word| {
-            let letters: Vec<char> = word.chars().filter(|c| c.is_alphabetic()).collect();
-            let acronym = letters.len() > 1 && letters.iter().all(|c| c.is_uppercase());
-            if acronym { word.to_string() } else { word.to_lowercase() }
+/// The stat block's headers as the book prints them, in capitals, the
+/// longer ones on two lines (SPD over INT).
+fn book_headers(headers: &[String]) -> Vec<(String, String)> {
+    headers
+        .iter()
+        .map(|h| {
+            let (top, bottom) = match h.as_str() {
+                "Accel" => ("ACC", ""),
+                "Spd Int" => ("SPD", "INT"),
+                "Top Spd" => ("TOP", "SPD"),
+                "Armor" => ("ARM", ""),
+                "Sensor" => ("SENS", ""),
+                other => (other, ""),
+            };
+            (top.to_uppercase(), bottom.to_string())
         })
         .collect()
 }
@@ -368,6 +353,43 @@ impl Sheet {
         }
     }
 
+    /// A line of 10-point text with a bold label ("Standard Equipment: ")
+    /// before it, wrapped under the label; without a label, an entry
+    /// indented under the line above (a weapon under "Weapons:").
+    fn labeled(&mut self, label: Option<&str>, text: &str) {
+        const SIZE: f32 = 10.0;
+        let leading = SIZE * 1.3;
+        let indent = if label.is_none() { 12.0 } else { 0.0 };
+        let label_width = label.map_or(0.0, |l| text_width(l, Font::Bold, SIZE));
+        // The first line has the label in it; the rest are the full width.
+        let mut lines = Vec::new();
+        let mut line = String::new();
+        for word in text.split_whitespace() {
+            let room = if lines.is_empty() { TEXT_WIDTH - indent - label_width } else { TEXT_WIDTH - indent };
+            let candidate = if line.is_empty() { word.to_string() } else { format!("{line} {word}") };
+            if !line.is_empty() && text_width(&candidate, Font::Regular, SIZE) > room {
+                lines.push(std::mem::take(&mut line));
+                line = word.to_string();
+            } else {
+                line = candidate;
+            }
+        }
+        lines.push(line);
+        for (i, line) in lines.iter().enumerate() {
+            self.need(leading);
+            self.y -= leading;
+            let baseline = self.y + (leading - SIZE) + SIZE * 0.2;
+            let mut x = MARGIN + indent;
+            if i == 0
+                && let Some(label) = label
+            {
+                self.text(x, baseline, Font::Bold, SIZE, label);
+                x += label_width;
+            }
+            self.text(x, baseline, Font::Regular, SIZE, line);
+        }
+    }
+
     /// A thin line across the page.
     fn rule(&mut self) {
         let (left, right, y) = (MARGIN, PAGE_WIDTH - MARGIN, self.y);
@@ -376,12 +398,11 @@ impl Sheet {
 
     /// The stat table: a dark band of white headers, then the values, each
     /// column as wide as its widest text.
-    fn stat_table(&mut self, report: &Report) {
+    fn stat_table(&mut self, headers: &[(String, String)], values: &[String]) {
         const HEAD: f32 = 7.5;
         const VALUE: f32 = 10.0;
         const PAD: f32 = 5.0;
-        let values = &report.stat_line.values;
-        let widths: Vec<f32> = HEADERS
+        let widths: Vec<f32> = headers
             .iter()
             .zip(values)
             .map(|((top, bottom), value)| {
@@ -397,7 +418,7 @@ impl Sheet {
         let bottom = top - band;
         self.page().push_str(&format!("0.2 g {MARGIN} {bottom:.2} {width:.2} {band:.2} re f 1 g\n"));
         let mut x = MARGIN;
-        for ((first, second), w) in HEADERS.iter().zip(&widths) {
+        for ((first, second), w) in headers.iter().zip(&widths) {
             self.text(x + PAD, top - 3.0 - HEAD, Font::Bold, HEAD, first);
             if !second.is_empty() {
                 self.text(x + PAD, top - 4.0 - 2.0 * HEAD, Font::Bold, HEAD, second);

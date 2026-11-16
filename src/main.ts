@@ -6,8 +6,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask, message, open, save } from "@tauri-apps/plugin-dialog";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { checkNow, installUpdate, startUpdateChecks } from "./updater.ts";
-import { chassisLabel, consoleLabel, factor, fileName, powertrainLabel, signed, statLineText, thousands } from "./format.ts";
-import { type Catalog, type Choice, type Design, type Improvements, type InstalledMod, newDesign, type Report } from "./types.ts";
+import { chassisLabel, consoleLabel, factor, fileName, powertrainLabel, signed, thousands } from "./format.ts";
+import {
+  type Catalog,
+  type Choice,
+  type Design,
+  type Improvements,
+  type InstalledMod,
+  newDesign,
+  type Report,
+  type Weapon,
+} from "./types.ts";
 
 const formEl = document.getElementById("form") as HTMLFormElement;
 const reportEl = document.getElementById("report") as HTMLElement;
@@ -143,6 +152,18 @@ function renderForm(): void {
       catalog.console.map((c) => ({ value: c.id, label: consoleLabel(c) })),
       (v) => {
         design.console = v;
+        changed();
+      },
+    ),
+    select(
+      "Stat block",
+      design.layout,
+      [
+        { value: "gear", label: "Gear book: Avail and Cost, Standard Equipment" },
+        { value: "gamemaster", label: "Gamemaster: DR, I/ID, AC, CM, Equipment" },
+      ],
+      (v) => {
+        design.layout = v === "gamemaster" ? "gamemaster" : "gear";
         changed();
       },
     ),
@@ -290,6 +311,7 @@ function renderForm(): void {
     modifications,
     quality,
     modsFieldset(),
+    weaponsFieldset(),
     el("fieldset", {}, el("legend", {}, "Notes"), notes),
   );
 }
@@ -369,6 +391,100 @@ function modRow(installed: InstalledMod, index: number): HTMLElement {
   return row;
 }
 
+// Weapons, typed in as ShadowrunEdit's weapon rows are, each in a mount.
+
+/** Replaces one weapon with a changed copy, and recalculates. */
+function updateWeapon(index: number, change: Partial<Weapon>): void {
+  design.weapons = design.weapons.map((w, i) => (i === index ? { ...w, ...change } : w));
+  changed(false);
+}
+
+/** A text box that commits on change. */
+function textBox(value: string, placeholder: string, onChange: (v: string) => void, cls = "") {
+  const input = el("input", { type: "text", placeholder, class: cls });
+  input.value = value;
+  input.addEventListener("change", () => onChange(input.value.trim()));
+  return input;
+}
+
+function weaponRow(w: Weapon, index: number): HTMLElement {
+  // The mounts to choose from: the vehicle's weapon mounts, and the one
+  // this weapon is in even if it's since been removed.
+  const mountIds = catalog.mods.filter((m) => m.id.endsWith("weapon-mount")).map((m) => m.id);
+  const installed = new Set(design.mods.map((m) => m.id));
+  const choices = mountIds.filter((id) => installed.has(id) || id === w.mount);
+  const mount = select(
+    "Mount",
+    w.mount,
+    [
+      { value: "", label: choices.length ? "Choose a mount…" : "Add a weapon mount in Mods first" },
+      ...choices.map((id) => ({ value: id, label: catalog.mods.find((m) => m.id === id)?.name ?? id })),
+    ],
+    (v) => updateWeapon(index, { mount: v }),
+  );
+
+  const ratings = el("span", { class: "ratings", title: "Attack Ratings before the mount's +2; 0 or blank for none" });
+  for (const [i, label] of ["Close", "Near", "Medium", "Far", "Extreme"].entries()) {
+    const box = numberBox(w.ar[i] ?? 0, 0, 99, `${label} Attack Rating (0 for none)`, (n) => {
+      const ar = [0, 1, 2, 3, 4].map((j) => (j === i ? Math.max(0, n) : (w.ar[j] ?? 0)));
+      updateWeapon(index, { ar });
+    });
+    ratings.append(box);
+  }
+
+  const remove = el("button", { type: "button", title: "Remove this weapon", class: "remove" }, "×");
+  remove.addEventListener("click", () => {
+    design.weapons = design.weapons.filter((_, i) => i !== index);
+    changed();
+  });
+
+  return el(
+    "div",
+    { class: "weapon" },
+    el(
+      "div",
+      { class: "weapon-top" },
+      textBox(w.name, "Weapon name", (name) => updateWeapon(index, { name }), "weapon-name"),
+      remove,
+    ),
+    el(
+      "div",
+      { class: "weapon-fields" },
+      textBox(w.weapon_type, "Type (Assault Rifles)", (weapon_type) => updateWeapon(index, { weapon_type })),
+      textBox(w.dv, "DV (4P)", (dv) => updateWeapon(index, { dv }), "short"),
+      textBox(w.mode, "Modes (SA/BF/FA)", (mode) => updateWeapon(index, { mode }), "short"),
+    ),
+    el("label", { class: "field" }, el("span", {}, "Attack Ratings"), ratings),
+    textBox(w.mods, "Its mods (smartgun system)", (mods) => updateWeapon(index, { mods }), "weapon-mods"),
+    mount,
+  );
+}
+
+function weaponsFieldset(): HTMLElement {
+  const add = el("button", { type: "button" }, "Add a weapon");
+  add.addEventListener("click", () => {
+    // A new weapon goes in the first weapon mount the vehicle has.
+    const firstMount = design.mods.find((m) => m.id.endsWith("weapon-mount"))?.id ?? "";
+    design.weapons = [
+      ...design.weapons,
+      { name: "", weapon_type: "", dv: "", mode: "", ar: [0, 0, 0, 0, 0], mods: "", mount: firstMount },
+    ];
+    changed();
+  });
+  return el(
+    "fieldset",
+    {},
+    el("legend", {}, "Weapons"),
+    el(
+      "p",
+      { class: "hint" },
+      "Each in a weapon mount (add mounts in Mods), which sets its ammunition and adds 2 to its Attack Ratings.",
+    ),
+    ...design.weapons.map(weaponRow),
+    add,
+  );
+}
+
 function modsFieldset(): HTMLElement {
   const add = select(
     "Add",
@@ -411,19 +527,36 @@ function table(rows: (string | Node)[][], head?: string[]): HTMLTableElement {
 
 function renderReport(r: Report): void {
   const s = r.stats;
-  const copy = el("button", { type: "button", title: "Copy the stat line as tab-separated text" }, "Copy");
+  const copy = el("button", { type: "button", title: "Copy the stat block, to paste into ShadowrunEdit or a document" }, "Copy");
   copy.addEventListener("click", async () => {
-    await navigator.clipboard.writeText(statLineText(r.stat_line));
+    await navigator.clipboard.writeText(r.block.text);
     copy.textContent = "Copied";
     setTimeout(() => {
       copy.textContent = "Copy";
     }, 1200);
   });
 
+  // The stat block, as ShadowrunEdit lays it out.
+  const b = r.block;
   const parts: (Node | string)[] = [
-    el("h2", {}, design.name || "Untitled vehicle", " ", copy),
-    el("div", { class: "statline" }, table([r.stat_line.values], r.stat_line.headers)),
+    el("h2", {}, b.title, " ", el("span", { class: "detail" }, `(${b.detail})`), " ", copy),
+    el("div", { class: "statline" }, table([b.main.values], b.main.headers)),
   ];
+  if (b.derived) parts.push(el("div", { class: "statline" }, table([b.derived.values], b.derived.headers)));
+  for (const line of b.lines) {
+    if (line.one_per_line) {
+      parts.push(
+        el(
+          "div",
+          { class: "block-line" },
+          el("b", {}, `${line.label}:`),
+          ...line.entries.map((e) => el("div", { class: "block-entry" }, e)),
+        ),
+      );
+    } else {
+      parts.push(el("p", { class: "block-line" }, el("b", {}, `${line.label}: `), line.entries.join(", ")));
+    }
+  }
   if (r.mods.lines.length) {
     parts.push(
       el("p", { class: "hint" }, "As designed, before mods:"),

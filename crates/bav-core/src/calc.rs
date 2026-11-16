@@ -7,6 +7,7 @@
 
 use serde::Serialize;
 
+use crate::block::{self, StatBlock};
 use crate::catalog::{Catalog, DroneSize, Kind};
 use crate::design::Design;
 use crate::mods::{self, ModsReport};
@@ -45,6 +46,8 @@ pub struct Report {
     /// The vehicle's price plus the mods installed afterward, at a shop.
     pub total_cost: i64,
     pub mods: ModsReport,
+    /// The stat block, laid out as in ShadowrunEdit.
+    pub block: StatBlock,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -404,6 +407,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     let context =
         mods::Context { chassis, powertrain, size_class, is_aircraft, universal_slots: 2 * imp.easily_modified.max(0) };
     let (modded, mods_report) = mods::apply(&design.mods, catalog, &context, &factory, &mut problems, &mut notes);
+    block::check_weapons(design, &mut problems);
 
     // Build Points.
     let mut build_points = vec![
@@ -568,7 +572,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     let factory_stat_line = stat_line_of(&factory, is_drone, &vehicle_availability, cost - mods_report.built_in_cost);
     let m = &modded;
 
-    Ok(Report {
+    let mut report = Report {
         stats: Stats {
             body: m.body,
             armor: m.armor,
@@ -610,7 +614,11 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         factory_stat_line,
         total_cost,
         mods: mods_report,
-    })
+        block: StatBlock::default(),
+    };
+    // The stat block reads the finished report, so it comes last.
+    report.block = block::build(design, &report, catalog, chassis);
+    Ok(report)
 }
 
 /// "3", or "5/3" when on-road and off-road Handling differ.

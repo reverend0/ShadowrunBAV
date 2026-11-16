@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chassisLabel, factor, fileName, signed, statLineText, thousands } from "./format.ts";
+import { chassisLabel, factor, fileName, signed, thousands } from "./format.ts";
 
 describe("format", () => {
   it("writes thousands with commas", () => {
@@ -15,10 +15,6 @@ describe("format", () => {
 
   it("writes multipliers as the book does", () => {
     expect(factor(0.5)).toBe("× 0.5");
-  });
-
-  it("copies the stat line as tab-separated rows", () => {
-    expect(statLineText({ headers: ["Hand", "Accel"], values: ["5/3", "12"] })).toBe("Hand\tAccel\n5/3\t12");
   });
 
   it("takes the file name from Windows and other paths", () => {

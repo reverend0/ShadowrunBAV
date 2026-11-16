@@ -1,5 +1,5 @@
 // The shapes Rust sends and receives (bav-core's Catalog, Design, Report),
-// as JSON. Keep these in step with crates/bav-core/src/{catalog,design,calc,mods}.rs.
+// as JSON. Keep these in step with crates/bav-core/src/{catalog,design,calc,mods,block}.rs.
 
 export type Kind = "ground" | "water" | "air" | "drone";
 
@@ -103,6 +103,21 @@ export interface Design {
   specialized_function: string;
   notes: string;
   mods: InstalledMod[];
+  weapons: Weapon[];
+  layout: "gear" | "gamemaster";
+}
+
+/** A weapon, typed in; its mount sets its ammunition and adds 2 to its Attack Ratings. */
+export interface Weapon {
+  name: string;
+  weapon_type: string;
+  dv: string;
+  mode: string;
+  /** Five Attack Ratings; 0 is an em dash. */
+  ar: number[];
+  mods: string;
+  /** The weapon mount's mod id. */
+  mount: string;
 }
 
 export interface InstalledMod {
@@ -152,6 +167,17 @@ export interface Report {
   factory_stat_line: StatLine;
   total_cost: number;
   mods: ModsReport;
+  block: StatBlock;
+}
+
+/** The stat block, laid out as ShadowrunEdit lays out a vehicle. */
+export interface StatBlock {
+  title: string;
+  detail: string;
+  main: StatLine;
+  derived: StatLine | null;
+  lines: { label: string; entries: string[]; one_per_line: boolean }[];
+  text: string;
 }
 
 export interface ModsReport {
@@ -205,5 +231,7 @@ export function newDesign(): Design {
     specialized_function: "",
     notes: "",
     mods: [],
+    weapons: [],
+    layout: "gear",
   };
 }

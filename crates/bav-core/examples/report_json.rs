@@ -1,7 +1,7 @@
 //! Prints the catalog and one design's report as JSON, for checking the UI
 //! outside the app: `cargo run -p bav-core --example report_json`.
 
-use bav_core::design::InstalledMod;
+use bav_core::design::{InstalledMod, Weapon};
 use bav_core::{Catalog, Design, Improvements, evaluate};
 
 fn main() {
@@ -23,6 +23,15 @@ fn main() {
             },
             InstalledMod { id: "spoof-kit".into(), ..InstalledMod::default() },
         ],
+        weapons: vec![Weapon {
+            name: "Ares Alpha".into(),
+            weapon_type: "Assault Rifles".into(),
+            dv: "4P".into(),
+            mode: "SA/BF/FA".into(),
+            ar: vec![3, 10, 9, 6, 2],
+            mods: "smartgun system".into(),
+            mount: "standard-weapon-mount".into(),
+        }],
         ..Design::default()
     };
     let catalog = Catalog::builtin();

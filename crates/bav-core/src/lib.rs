@@ -5,10 +5,12 @@
 //!   options, quality factors), from `data/design.toml`.
 //! - `design`: a design, the player's choices.
 //! - `calc`: works a design out into stats, Build Points, cost, and tests.
+//! - `block`: the stat block, laid out as in ShadowrunEdit.
 //! - `files`: reading and writing design files.
 //! - `mods`: vehicle mods ("Making It Yours"), on top of a design.
 //! - `pdf`: a design as a PDF vehicle sheet, laid out like the book's entries.
 
+pub mod block;
 pub mod calc;
 pub mod catalog;
 pub mod design;

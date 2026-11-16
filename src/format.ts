@@ -1,6 +1,6 @@
 // Small text helpers for the UI, kept apart from the DOM so they can be tested.
 
-import type { Chassis, Console, Powertrain, StatLine } from "./types.ts";
+import type { Chassis, Console, Powertrain } from "./types.ts";
 
 /** 173000 → "173,000". */
 export function thousands(n: number): string {
@@ -17,11 +17,6 @@ export function signed(n: number): string {
 /** A multiplier as the book writes it: "× 0.5". */
 export function factor(n: number): string {
   return `× ${n}`;
-}
-
-/** The stat line as tab-separated rows, to paste into a document. */
-export function statLineText(line: StatLine): string {
-  return `${line.headers.join("\t")}\n${line.values.join("\t")}`;
 }
 
 /** The last part of a path, for the title: "C:\\Designs\\Raptor.bav" → "Raptor.bav". */

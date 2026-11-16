@@ -4,11 +4,13 @@ A Windows app for designing vehicles and drones from scratch by the rules of *Sh
 
 Pick a chassis, powertrain, and console, then add design options, design modifications, and quality factors. The app works out:
 
-- the SR6 stat line (Hand, Accel, Spd Int, Top Spd, Body, Armor, Pilot, Sensor, Seat, Avail, Cost), with a Copy button
+- the SR6 stat line (Hand, Accel, Spd Int, Top Spd, Body, Armor, Pilot, Sensor, Seat, Avail, Cost)
 - the speed calculation, step by step
 - the Build Points, line by line, with the quality factors' multipliers
 - the price, Availability, and the Engineering + Logic tests to design and build it
 - its mods: installed afterward (shop or do-it-yourself price, install test) or built into the design, with mod slots, hardpoints, and cargo space checked and the stat line updated
+- weapons, typed in and fitted in weapon mounts
+- the stat block laid out as ShadowrunEdit does (gear book or gamemaster), with Copy to paste it there
 - a PDF vehicle sheet laid out like the book's entries
 
 A design that breaks a rule still calculates, and the app says what to fix. Designs save as `.bav` files.

@@ -3,6 +3,7 @@
 
 use std::path::PathBuf;
 
+use bav_core::design::{InstalledMod, Layout, Weapon};
 use bav_core::{Catalog, Design, Improvements, pdf};
 
 fn main() {
@@ -18,6 +19,22 @@ fn main() {
         modifications: vec!["high-performance-engine".into(), "multi-engine".into()],
         qualities: vec!["military".into()],
         notes: "A low-altitude vehicle for moving a fire team in a hurry, armored against small arms.".into(),
+        mods: vec![
+            InstalledMod { id: "standard-weapon-mount".into(), count: 2, ..InstalledMod::default() },
+            InstalledMod { id: "spoof-kit".into(), ..InstalledMod::default() },
+            InstalledMod { id: "ram-plating".into(), rating: 2, ..InstalledMod::default() },
+        ],
+        weapons: vec![Weapon {
+            name: "Ares Alpha".into(),
+            weapon_type: "Assault Rifles".into(),
+            dv: "4P".into(),
+            mode: "SA/BF/FA".into(),
+            ar: vec![3, 10, 9, 6, 2],
+            mods: "smartgun system".into(),
+            mount: "standard-weapon-mount".into(),
+        }],
+        // A second argument, "gm", lays it out for a gamemaster.
+        layout: if std::env::args().nth(2).as_deref() == Some("gm") { Layout::Gamemaster } else { Layout::Gear },
         ..Design::default()
     };
     match pdf::export(&path, &design, Catalog::builtin()) {

@@ -681,7 +681,7 @@ fn long_notes_go_on_to_a_second_page() {
 #[test]
 fn the_entrys_type_is_the_chassis_in_lowercase_keeping_acronyms() {
     let c = Catalog::builtin();
-    let kind = |id: &str| pdf::vehicle_type(c.chassis(id).unwrap());
+    let kind = |id: &str| crate::block::vehicle_type(c.chassis(id).unwrap());
     assert_eq!(kind("car"), "car");
     assert_eq!(kind("van"), "van/SUV");
     assert_eq!(kind("fixed-wing"), "fixed wing");

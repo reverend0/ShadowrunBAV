@@ -30,6 +30,56 @@ pub struct Design {
     pub notes: String,
     /// Mods ("Making It Yours"), in the order they were added.
     pub mods: Vec<InstalledMod>,
+    /// Weapons, each in one of the vehicle's weapon mounts.
+    pub weapons: Vec<Weapon>,
+    /// How the stat block is laid out, as in ShadowrunEdit.
+    pub layout: Layout,
+}
+
+/// A stat block's layout, ShadowrunEdit's two modes: a gear book's (Avail
+/// and Cost, "Standard Equipment") or a gamemaster's (a DR, I/ID, AC, CM
+/// row, "Equipment").
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Layout {
+    #[default]
+    Gear,
+    Gamemaster,
+}
+
+/// A weapon on the vehicle, typed in as ShadowrunEdit's weapon rows are.
+/// The mount sets its ammunition and adds to its Attack Ratings (p. 142).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Weapon {
+    pub name: String,
+    /// The weapon type ("Assault Rifles", "LMG").
+    pub weapon_type: String,
+    /// The Damage Value as written ("5P").
+    pub dv: String,
+    /// Firing modes ("SA/BF/FA"); blank for none.
+    pub mode: String,
+    /// The five Attack Ratings, close to extreme, before the mount's +2; 0
+    /// is an em dash (out of range).
+    pub ar: Vec<i32>,
+    /// Its own modifications ("smartgun system"), as written.
+    pub mods: String,
+    /// The weapon mount's mod id ("standard-turreted-weapon-mount").
+    pub mount: String,
+}
+
+impl Default for Weapon {
+    fn default() -> Self {
+        Weapon {
+            name: String::new(),
+            weapon_type: String::new(),
+            dv: String::new(),
+            mode: String::new(),
+            ar: vec![0; 5],
+            mods: String::new(),
+            mount: String::new(),
+        }
+    }
 }
 
 /// One mod on the vehicle.
@@ -71,6 +121,8 @@ impl Default for Design {
             specialized_function: String::new(),
             notes: String::new(),
             mods: Vec::new(),
+            weapons: Vec::new(),
+            layout: Layout::Gear,
         }
     }
 }
