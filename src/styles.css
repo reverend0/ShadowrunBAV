@@ -51,7 +51,8 @@ body {
   flex: 1;
 }
 
-#file {
+#file,
+.version {
   color: var(--muted);
 }
 
@@ -278,4 +279,40 @@ details {
 summary {
   cursor: pointer;
   color: var(--muted);
+}
+
+/* "Update to X": shown once a newer release is found. */
+#update {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* An installed mod: name, rating, count, built in, note, remove. */
+.mod-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.mod-name {
+  flex: 1 1 200px;
+}
+
+.mod-row .small input {
+  width: 56px;
+}
+
+.mod-row .mod-note {
+  width: 120px;
+}
+
+.mod-row .remove {
+  padding: 0 8px;
+}
+
+.spacer-row {
+  height: 8px;
 }

@@ -22,6 +22,9 @@ pub struct Catalog {
     pub improvement: Vec<Improvement>,
     pub modification: Vec<Modification>,
     pub quality: Vec<Quality>,
+    /// The vehicle mods, from `data/mods.toml`.
+    #[serde(default)]
+    pub mods: Vec<Mod>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,7 +47,8 @@ pub enum Kind {
     Drone,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Drone sizes, smallest first, so they compare (`Small < Medium`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DroneSize {
     Micro,
@@ -75,6 +79,40 @@ pub struct Chassis {
     /// Built for underwater use (a submersible).
     #[serde(default)]
     pub underwater: bool,
+    /// How much skin it has (p. 131): standard unless the file says open (a
+    /// bike) or enclosed (a drone).
+    #[serde(default)]
+    pub form: Form,
+}
+
+/// A skin form (p. 131), in order from least to most skin, so they compare:
+/// `Form::Open < Form::Enclosed`. `#[derive(PartialOrd, Ord)]` orders an
+/// enum's variants as they're written.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Form {
+    Open,
+    #[default]
+    Standard,
+    Enclosed,
+}
+
+impl Form {
+    pub fn level(self) -> i32 {
+        match self {
+            Form::Open => 1,
+            Form::Standard => 2,
+            Form::Enclosed => 3,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Form::Open => "open construction",
+            Form::Standard => "standard construction",
+            Form::Enclosed => "totally enclosed construction",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,8 +176,123 @@ pub struct Quality {
     pub legality: Option<String>,
 }
 
-/// The tables' source, built into the program.
+/// A vehicle mod ("Making It Yours", pp. 120–144). `data/mods.toml`
+/// explains each field; what an `effect` does is in `mods.rs`.
+///
+/// `#[serde(default)]` on the struct fills every field the file leaves out
+/// from `Default` (zero, empty, `None`), so each entry lists only what it has.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Mod {
+    pub id: String,
+    pub name: String,
+    pub group: String,
+    pub slot_type: SlotType,
+    pub rating_min: Option<i32>,
+    pub rating_max: Option<i32>,
+    pub slots: f64,
+    pub slots_per_rating: f64,
+    pub slots_per_body: f64,
+    pub slots_per_armor: f64,
+    pub availability: String,
+    pub availability_per_rating: i32,
+    pub cost: i64,
+    pub cost_per_rating: i64,
+    pub cost_per_body: i64,
+    pub cost_per_armor: i64,
+    pub cost_per_rating_body: i64,
+    pub cost_small: Option<i64>,
+    pub diy_fixed: Option<i64>,
+    pub levels: Vec<Level>,
+    pub cf: f64,
+    pub cf_per_rating: f64,
+    pub hardpoint: Option<Hardpoint>,
+    pub provides: Option<Hardpoint>,
+    pub many: bool,
+    pub exclusive: Option<String>,
+    pub requires: Option<String>,
+    pub effect: Option<String>,
+    pub secondary: Option<Secondary>,
+}
+
+impl Mod {
+    /// Whether it has a rating to choose.
+    pub fn rated(&self) -> bool {
+        self.rating_max.is_some()
+    }
+
+    /// Accessories use no slots and get no do-it-yourself discount (p. 120).
+    pub fn is_accessory(&self) -> bool {
+        self.group == "accessory"
+    }
+}
+
+/// Which mod slots a mod takes. `Either` is powertrain or electronics (a
+/// suncell), whichever has room.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SlotType {
+    Chassis,
+    Powertrain,
+    Electronics,
+    Either,
+    #[default]
+    None,
+}
+
+/// One rating's row when the book tabulates a mod by rating (milspec plate,
+/// anti-theft). A field left out falls back to the mod's own.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Level {
+    pub slots: Option<f64>,
+    pub availability: Option<String>,
+    pub cost: Option<i64>,
+}
+
+/// Hardpoint sizes (p. 124). A standard hardpoint splits into two small,
+/// and two or three combine into a large or a huge, so each size counts as
+/// some number of standard hardpoints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Hardpoint {
+    Small,
+    Standard,
+    Large,
+    Huge,
+}
+
+impl Hardpoint {
+    pub fn standard_hardpoints(self) -> f64 {
+        match self {
+            Hardpoint::Small => 0.5,
+            Hardpoint::Standard => 1.0,
+            Hardpoint::Large => 2.0,
+            Hardpoint::Huge => 3.0,
+        }
+    }
+}
+
+/// A secondary propulsion system's own stats while deployed (p. 137).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Secondary {
+    pub handling: String,
+    pub acceleration: i32,
+    pub speed_interval: i32,
+    pub top_speed: i32,
+}
+
+/// The tables' sources, built into the program.
 const DESIGN_TOML: &str = include_str!("../../../data/design.toml");
+const MODS_TOML: &str = include_str!("../../../data/mods.toml");
+
+/// `data/mods.toml`'s shape: its `[[mod]]` tables. `mod` is a Rust keyword,
+/// so the field has another name and serde maps it.
+#[derive(Deserialize)]
+struct ModsFile {
+    #[serde(rename = "mod")]
+    mods: Vec<Mod>,
+}
 
 impl Catalog {
     /// The built-in tables, parsed once and shared.
@@ -151,7 +304,16 @@ impl Catalog {
     /// tests catch before anyone runs the app.
     pub fn builtin() -> &'static Catalog {
         static CATALOG: OnceLock<Catalog> = OnceLock::new();
-        CATALOG.get_or_init(|| toml::from_str(DESIGN_TOML).expect("data/design.toml is valid"))
+        CATALOG.get_or_init(|| {
+            let mut catalog: Catalog = toml::from_str(DESIGN_TOML).expect("data/design.toml is valid");
+            let mods: ModsFile = toml::from_str(MODS_TOML).expect("data/mods.toml is valid");
+            catalog.mods = mods.mods;
+            catalog
+        })
+    }
+
+    pub fn vehicle_mod(&self, id: &str) -> Option<&Mod> {
+        self.mods.iter().find(|m| m.id == id)
     }
 
     // Lookups by id. Each returns `Option<&T>`: a reference into the catalog

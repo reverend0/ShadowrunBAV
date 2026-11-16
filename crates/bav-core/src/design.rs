@@ -28,6 +28,32 @@ pub struct Design {
     /// What a Specialized Function vehicle is for (an ambulance, say).
     pub specialized_function: String,
     pub notes: String,
+    /// Mods ("Making It Yours"), in the order they were added.
+    pub mods: Vec<InstalledMod>,
+}
+
+/// One mod on the vehicle.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InstalledMod {
+    /// An id from `data/mods.toml`.
+    pub id: String,
+    /// Its rating, for a mod that has one (0 otherwise).
+    pub rating: i32,
+    /// How many, for a mod that can be installed more than once.
+    pub count: i32,
+    /// Built into the design (2 Build Points a slot, its price added to the
+    /// vehicle's), rather than installed afterward.
+    pub built_in: bool,
+    /// What it's for, as the player wants it noted ("cold", "rear turret").
+    pub note: String,
+}
+
+impl Default for InstalledMod {
+    /// One of a mod, installed afterward. (A count of 0 would mean none.)
+    fn default() -> Self {
+        InstalledMod { id: String::new(), rating: 0, count: 1, built_in: false, note: String::new() }
+    }
 }
 
 impl Default for Design {
@@ -44,6 +70,7 @@ impl Default for Design {
             environment: String::new(),
             specialized_function: String::new(),
             notes: String::new(),
+            mods: Vec::new(),
         }
     }
 }

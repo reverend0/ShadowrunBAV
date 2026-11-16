@@ -1,10 +1,13 @@
 // The builder window: a form of the design's choices on the left, and the
 // vehicle Rust works out from them on the right, redone on every change.
 
+import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
 import { ask, message, open, save } from "@tauri-apps/plugin-dialog";
+import type { Update } from "@tauri-apps/plugin-updater";
+import { checkNow, installUpdate, startUpdateChecks } from "./updater.ts";
 import { chassisLabel, consoleLabel, factor, fileName, powertrainLabel, signed, statLineText, thousands } from "./format.ts";
-import { type Catalog, type Choice, type Design, type Improvements, newDesign, type Report } from "./types.ts";
+import { type Catalog, type Choice, type Design, type Improvements, type InstalledMod, newDesign, type Report } from "./types.ts";
 
 const formEl = document.getElementById("form") as HTMLFormElement;
 const reportEl = document.getElementById("report") as HTMLElement;
@@ -286,7 +289,114 @@ function renderForm(): void {
     options,
     modifications,
     quality,
+    modsFieldset(),
     el("fieldset", {}, el("legend", {}, "Notes"), notes),
+  );
+}
+
+// Mods ("Making It Yours").
+
+const MOD_GROUPS: Record<string, string> = {
+  accessory: "Accessories",
+  chassis: "Chassis",
+  hardpoint: "Hardpoints",
+  device: "Hardpoint devices",
+  seating: "Seating and cargo",
+  skin: "Skin",
+  powertrain: "Powertrain",
+  propulsion: "Secondary propulsion",
+  electronics: "Electronics",
+};
+
+/** Replaces one installed mod with a changed copy, and recalculates. */
+function updateMod(index: number, change: Partial<InstalledMod>, redraw = false): void {
+  design.mods = design.mods.map((m, i) => (i === index ? { ...m, ...change } : m));
+  changed(redraw);
+}
+
+/** A number box that commits a whole number on change. */
+function numberBox(value: number, min: number, max: number, title: string, onChange: (n: number) => void) {
+  const input = el("input", { type: "number", step: "1", min: String(min), max: String(max), title });
+  input.value = String(value);
+  input.addEventListener("change", () => onChange(Math.trunc(Number(input.value)) || 0));
+  return input;
+}
+
+/** One installed mod: its name, rating, count, built in, note, and remove. */
+function modRow(installed: InstalledMod, index: number): HTMLElement {
+  const def = catalog.mods.find((m) => m.id === installed.id);
+  const row = el("div", { class: "mod-row" }, el("span", { class: "mod-name" }, def?.name ?? installed.id));
+  if (def?.rating_max != null) {
+    const min = def.rating_min ?? 1;
+    row.append(
+      el(
+        "label",
+        { class: "small" },
+        "Rating ",
+        numberBox(installed.rating, min, def.rating_max, `Rating ${min} to ${def.rating_max}`, (rating) =>
+          updateMod(index, { rating }),
+        ),
+      ),
+    );
+  }
+  if (def?.many) {
+    row.append(
+      el(
+        "label",
+        { class: "small" },
+        "× ",
+        numberBox(installed.count, 1, 99, "How many", (count) => updateMod(index, { count: Math.max(1, count) })),
+      ),
+    );
+  }
+  row.append(
+    checkbox(
+      "Built in",
+      installed.built_in,
+      (built_in) => updateMod(index, { built_in }),
+      "Built into the design: 2 Build Points a slot, its price added to the vehicle's",
+    ),
+  );
+  const note = el("input", { type: "text", placeholder: "Note", class: "mod-note" });
+  note.value = installed.note;
+  note.addEventListener("change", () => updateMod(index, { note: note.value.trim() }));
+  const remove = el("button", { type: "button", title: "Remove this mod", class: "remove" }, "×");
+  remove.addEventListener("click", () => {
+    design.mods = design.mods.filter((_, i) => i !== index);
+    changed();
+  });
+  row.append(note, remove);
+  return row;
+}
+
+function modsFieldset(): HTMLElement {
+  const add = select(
+    "Add",
+    "",
+    [
+      { value: "", label: "Choose a mod…" },
+      ...catalog.mods.map((m) => ({ value: m.id, label: m.name, group: MOD_GROUPS[m.group] ?? m.group })),
+    ],
+    (id) => {
+      const def = catalog.mods.find((m) => m.id === id);
+      if (!def) return;
+      // A rated mod starts at its lowest positive rating.
+      const rating = def.rating_max == null ? 0 : Math.max(1, def.rating_min ?? 1);
+      design.mods = [...design.mods, { id, rating, count: 1, built_in: false, note: "" }];
+      changed();
+    },
+  );
+  return el(
+    "fieldset",
+    {},
+    el("legend", {}, "Mods"),
+    el(
+      "p",
+      { class: "hint" },
+      "Installed afterward, or built into the design (2 Build Points a slot, its price added to the vehicle's).",
+    ),
+    ...design.mods.map(modRow),
+    add,
   );
 }
 
@@ -314,6 +424,12 @@ function renderReport(r: Report): void {
     el("h2", {}, design.name || "Untitled vehicle", " ", copy),
     el("div", { class: "statline" }, table([r.stat_line.values], r.stat_line.headers)),
   ];
+  if (r.mods.lines.length) {
+    parts.push(
+      el("p", { class: "hint" }, "As designed, before mods:"),
+      el("div", { class: "statline" }, table([r.factory_stat_line.values], r.factory_stat_line.headers)),
+    );
+  }
   if (r.problems.length) {
     parts.push(el("ul", { class: "problems" }, ...r.problems.map((p) => el("li", {}, p))));
   }
@@ -359,7 +475,57 @@ function renderReport(r: Report): void {
       ["Build it", "Engineering + Logic (20, 1 week) Extended test, in a facility"],
     ]),
   );
+  if (r.mods.lines.length) parts.push(...modsReport(r));
   reportEl.replaceChildren(...parts);
+}
+
+/** The report's Mods section: each mod, then slots, hardpoints, and prices. */
+function modsReport(r: Report): Node[] {
+  const m = r.mods;
+  const rows: (string | Node)[][] = m.lines.map((line) => [
+    line.label,
+    slotsText(line.slots) + (line.cf ? `, ${slotsText(line.cf)} CF` : ""),
+    line.availability,
+    `${thousands(line.price)}¥`,
+    line.built_in ? `built in, ${line.build_points} BP` : `${thousands(line.diy_price)}¥ yourself; ${line.install_test}`,
+  ]);
+  const used = m.slots.map((s) => `${s.category} ${slotsText(s.used)} of ${s.available}`).join(", ");
+  const summary: (string | Node)[][] = [
+    ["Mod slots", used + (m.universal_slots ? `, plus ${m.universal_slots} universal` : "")],
+    [
+      "Hardpoints",
+      `${slotsText(m.hardpoints.used)} of ${slotsText(m.hardpoints.free + m.hardpoints.added)} standard hardpoints used ` +
+        `(${slotsText(m.hardpoints.free)} free, ${slotsText(m.hardpoints.added)} added)`,
+    ],
+    ["Skin", m.form],
+  ];
+  if (m.cargo_used) summary.push(["Cargo taken", `${slotsText(m.cargo_used)} CF`]);
+  if (m.secondary) {
+    const s = m.secondary;
+    summary.push([
+      "Secondary propulsion",
+      `${s.name}: Handling ${s.handling}, Acceleration ${s.acceleration}, Speed Interval ${s.speed_interval}, Top Speed ${s.top_speed}`,
+    ]);
+  }
+  if (m.built_in_cost) summary.push(["Built in", `${thousands(m.built_in_cost)}¥, part of the vehicle's price`]);
+  if (m.aftermarket_cost) {
+    summary.push([
+      "Installed afterward",
+      `${thousands(m.aftermarket_cost)}¥ at a shop, or ${thousands(m.aftermarket_diy_cost)}¥ doing it yourself`,
+    ]);
+  }
+  summary.push([el("b", {}, "With its mods"), el("b", {}, `${thousands(r.total_cost)}¥`)]);
+  return [
+    el("h3", {}, "Mods"),
+    table(rows, ["Mod", "Slots", "Avail", "Price", "Installing it"]),
+    el("div", { class: "spacer-row" }),
+    table(summary),
+  ];
+}
+
+/** Slots and CF as the book writes them: whole, or with their fraction. */
+function slotsText(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
 }
 
 async function recalculate(): Promise<void> {
@@ -454,9 +620,41 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+// Updates (src/updater.ts): a found update shows "Update to X" on the
+// toolbar; clicking it asks, saves the design if needed, installs, and
+// restarts.
+
+const updateEl = document.getElementById("update") as HTMLButtonElement;
+let appVersion = "";
+
+/**
+ * Before an update restarts the app: saves unsaved changes (Save As for an
+ * untitled design), or, if that's cancelled, asks to discard them. False
+ * cancels the update.
+ */
+async function readyToRestart(): Promise<boolean> {
+  if (!isDirty()) return true;
+  await saveTo(path);
+  return !isDirty() || discardOk();
+}
+
+function showUpdate(update: Update): void {
+  updateEl.textContent = `Update to ${update.version}`;
+  updateEl.title = `ShadowrunBAV ${update.version} is available; you have ${update.currentVersion}`;
+  updateEl.hidden = false;
+  updateEl.onclick = () => void installUpdate(update, readyToRestart);
+}
+
+actions.checkUpdates = async () => {
+  await checkNow(appVersion, showUpdate, readyToRestart);
+};
+
 async function start(): Promise<void> {
   catalog = await invoke<Catalog>("catalog");
   load(newDesign(), null);
+  appVersion = await getVersion();
+  (document.getElementById("version") as HTMLElement).textContent = `v${appVersion}`;
+  startUpdateChecks(showUpdate);
 }
 
 void start();

@@ -1,0 +1,1443 @@
+# Vehicle modifications from Shadowrun Sixth World's Double Clutch,
+# "Making It Yours" (pp. 120–144). Names and numbers only: what each mod
+# does is calculated in `crates/bav-core/src/mods.rs`, and decisions on
+# where the book contradicts itself are in DESIGN.md.
+#
+# Fields (all but id, name, group, and slot_type are optional):
+#   group             where the window lists it; "accessory" mods use no slots
+#                     and get no do-it-yourself discount (p. 120)
+#   slot_type         chassis, powertrain, electronics, either (powertrain or
+#                     electronics), or none
+#   rating_min/max    its rating range; no rating when left out
+#   slots             mod slots, plus slots_per_rating × rating,
+#                     slots_per_body × Body (rounded up), slots_per_armor × Armor
+#   availability      "4", "4(I)", or "" for none; plus availability_per_rating × rating
+#   cost              nuyen, plus cost_per_rating × rating, cost_per_body × Body,
+#                     cost_per_armor × Armor, cost_per_rating_body × rating × Body;
+#                     cost_small is the price for a bike or a drone (tires)
+#   levels            a row per rating, when the book tabulates them
+#   cf                Cargo Factors it takes, plus cf_per_rating × rating
+#   hardpoint         the hardpoint a device attaches to; provides: the
+#                     hardpoint a hardpoint mod adds
+#   many              can be installed more than once (a count)
+#   exclusive         one choice in this group at a time
+#   requires          passenger (not a drone), wheeled, medevac-drone,
+#                     small-drone (medium drones and smaller), valkyrie
+#   effect            what it changes, worked out in mods.rs
+
+# Accessories (pp. 120–122).
+
+[[mod]]
+id = "emergency-lights"
+name = "Emergency Light Bars/Siren"
+group = "accessory"
+slot_type = "none"
+availability = "4(L)"
+cost = 6000
+
+[[mod]]
+id = "distinctive-features"
+name = "Distinctive Features"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 4000
+
+[[mod]]
+id = "oil-slick-sprayer"
+name = "Oil Slick Sprayer"
+group = "accessory"
+slot_type = "none"
+availability = "4(I)"
+cost = 1000
+
+[[mod]]
+id = "road-strip-ejector"
+name = "Road Strip Ejector"
+group = "accessory"
+slot_type = "none"
+availability = "4(I)"
+cost = 1000
+
+[[mod]]
+id = "spike-strip"
+name = "Spike Strip"
+group = "accessory"
+slot_type = "none"
+availability = "3(I)"
+cost = 250
+many = true
+
+[[mod]]
+id = "tracking-strip"
+name = "Tracking Strip"
+group = "accessory"
+slot_type = "none"
+availability = "3"
+cost = 500
+many = true
+
+[[mod]]
+id = "zapper-strip"
+name = "Zapper Strip"
+group = "accessory"
+slot_type = "none"
+availability = "3(L)"
+cost = 1000
+many = true
+
+[[mod]]
+id = "smoke-projector"
+name = "Smoke Projector"
+group = "accessory"
+slot_type = "none"
+availability = "3(L)"
+cost = 600
+
+[[mod]]
+id = "smoke-projector-thermal"
+name = "Smoke Projector (thermal smoke)"
+group = "accessory"
+slot_type = "none"
+availability = "3(L)"
+cost = 700
+
+[[mod]]
+id = "gas-dispersal"
+name = "Gas Dispersal System"
+group = "accessory"
+slot_type = "none"
+availability = "5(L)"
+cost = 2000
+
+[[mod]]
+id = "searchlight"
+name = "Searchlight"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 800
+many = true
+
+[[mod]]
+id = "spoof-kit"
+name = "Spoof Kit"
+group = "accessory"
+slot_type = "none"
+availability = "4(I)"
+cost = 1500
+
+# Specialty tires: a set, priced for a bike or drone / a car or truck.
+# Run-flat on off-road or racing tires is +50% (decided).
+
+[[mod]]
+id = "off-road-tires"
+name = "Off-Road Tires"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 1600
+cost_small = 800
+exclusive = "tires"
+requires = "wheeled"
+effect = "off-road-tires"
+
+[[mod]]
+id = "off-road-tires-run-flat"
+name = "Off-Road Tires, run-flat"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 2400
+cost_small = 1200
+exclusive = "tires"
+requires = "wheeled"
+effect = "off-road-tires"
+
+[[mod]]
+id = "racing-tires"
+name = "Racing Tires"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 1000
+cost_small = 500
+exclusive = "tires"
+requires = "wheeled"
+effect = "racing-tires"
+
+[[mod]]
+id = "racing-tires-run-flat"
+name = "Racing Tires, run-flat"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 1500
+cost_small = 750
+exclusive = "tires"
+requires = "wheeled"
+effect = "racing-tires"
+
+[[mod]]
+id = "run-flat-tires"
+name = "Run-Flat Tires"
+group = "accessory"
+slot_type = "none"
+availability = "2"
+cost = 800
+cost_small = 400
+exclusive = "tires"
+requires = "wheeled"
+
+[[mod]]
+id = "smart-tires"
+name = "Smart Tires"
+group = "accessory"
+slot_type = "none"
+availability = "4"
+cost = 2400
+cost_small = 1200
+exclusive = "tires"
+requires = "wheeled"
+effect = "smart-tires"
+
+[[mod]]
+id = "shredders"
+name = "Shredders"
+group = "accessory"
+slot_type = "none"
+availability = "4(I)"
+cost = 1200
+cost_small = 600
+exclusive = "tires"
+requires = "wheeled"
+
+# Chassis: core (pp. 123–124).
+
+[[mod]]
+id = "easy-assembly"
+name = "Easy Assembly/Disassembly"
+group = "chassis"
+slot_type = "chassis"
+slots_per_body = 0.3333333333333333
+availability = "3"
+cost = 2000
+effect = "easy-assembly"
+
+[[mod]]
+id = "extra-entry-exit"
+name = "Extra Entry/Exit Points"
+group = "chassis"
+slot_type = "chassis"
+slots = 1.0
+availability = "4"
+cost = 4000
+requires = "passenger"
+
+[[mod]]
+id = "extreme-environmental"
+name = "Extreme Environmental Mod"
+group = "chassis"
+slot_type = "chassis"
+slots = 1.0
+availability = "3"
+cost = 3000
+many = true
+
+[[mod]]
+id = "gun-port"
+name = "Gun Port"
+group = "chassis"
+slot_type = "chassis"
+slots = 0.5
+availability = "3(L)"
+cost = 1000
+many = true
+requires = "passenger"
+
+[[mod]]
+id = "small-hardpoint"
+name = "Small Hardpoint"
+group = "hardpoint"
+slot_type = "chassis"
+slots = 0.5
+availability = "2"
+cost = 800
+many = true
+provides = "small"
+
+[[mod]]
+id = "standard-hardpoint"
+name = "Standard Hardpoint"
+group = "hardpoint"
+slot_type = "chassis"
+slots = 1.0
+availability = "2"
+cost = 1500
+many = true
+provides = "standard"
+
+[[mod]]
+id = "large-hardpoint"
+name = "Large Hardpoint"
+group = "hardpoint"
+slot_type = "chassis"
+slots = 2.0
+availability = "3"
+cost = 3000
+many = true
+provides = "large"
+
+[[mod]]
+id = "huge-hardpoint"
+name = "Huge Hardpoint"
+group = "hardpoint"
+slot_type = "chassis"
+slots = 3.0
+availability = "4"
+cost = 8000
+many = true
+provides = "huge"
+
+[[mod]]
+id = "structural-integrity"
+name = "Increased Structural Integrity"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 20
+slots_per_rating = 1.0
+availability = "4"
+cost_per_rating = 5000
+effect = "structure"
+
+[[mod]]
+id = "medevac"
+name = "Medevac Modifications"
+group = "chassis"
+slot_type = "chassis"
+slots = 1.0
+availability = "5"
+cost = 3500
+requires = "medevac-drone"
+
+[[mod]]
+id = "powered-breakdown"
+name = "Powered Breakdown"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 4
+slots_per_body = 0.5
+availability = "6(L)"
+cost_per_rating = 1500
+requires = "small-drone"
+
+# Chassis: handling (pp. 125–126).
+
+[[mod]]
+id = "improved-handling"
+name = "Improved Handling"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 2
+slots_per_rating = 2.0
+availability = "5"
+cost_per_rating = 18000
+effect = "improved-handling"
+
+[[mod]]
+id = "pilot-by-wire"
+name = "Pilot-By-Wire"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 2
+slots_per_rating = 3.0
+availability = "6(L)"
+cost_per_rating = 24000
+effect = "pilot-by-wire"
+
+[[mod]]
+id = "removed-manual-controls"
+name = "Removed Manual Controls"
+group = "chassis"
+slot_type = "chassis"
+slots = -1.0
+availability = "2"
+cost = 800
+requires = "passenger"
+
+[[mod]]
+id = "multi-terrain-static"
+name = "Multi-Terrain Suspension (Static)"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 3
+slots_per_rating = 0.5
+availability = "2"
+cost_per_rating = 2500
+exclusive = "multi-terrain"
+effect = "multi-terrain"
+
+[[mod]]
+id = "multi-terrain-active"
+name = "Multi-Terrain Suspension (Active)"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 3
+slots_per_rating = 1.0
+availability = "4"
+cost_per_rating = 4500
+exclusive = "multi-terrain"
+effect = "multi-terrain-active"
+
+# Chassis: seating and cargo (pp. 127–130). CF mods take cargo space.
+
+[[mod]]
+id = "amenities-squatter"
+name = "Amenities: Squatter"
+group = "seating"
+slot_type = "none"
+availability = "2"
+cost = 1000
+exclusive = "amenities"
+requires = "passenger"
+effect = "squatter"
+
+[[mod]]
+id = "amenities-middle"
+name = "Amenities: Middle"
+group = "seating"
+slot_type = "none"
+availability = "2"
+cost = 2000
+exclusive = "amenities"
+requires = "passenger"
+
+[[mod]]
+id = "amenities-high"
+name = "Amenities: High"
+group = "seating"
+slot_type = "none"
+availability = "4"
+cost = 4000
+exclusive = "amenities"
+requires = "passenger"
+
+[[mod]]
+id = "amenities-luxury"
+name = "Amenities: Luxury"
+group = "seating"
+slot_type = "none"
+availability = "6"
+cost = 20000
+exclusive = "amenities"
+requires = "passenger"
+
+[[mod]]
+id = "metahuman-adjustment-pilot"
+name = "Metahuman Adjustments (pilot seat)"
+group = "seating"
+slot_type = "none"
+availability = "2"
+cost = 500
+requires = "passenger"
+
+[[mod]]
+id = "metahuman-adjustment-seat"
+name = "Metahuman Adjustments (other seat)"
+group = "seating"
+slot_type = "none"
+availability = "2"
+cost = 250
+many = true
+requires = "passenger"
+
+[[mod]]
+id = "cargo-space"
+name = "Increased Cargo Space (2 CF a rating)"
+group = "seating"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 50
+slots_per_rating = 1.0
+availability = "2"
+cost_per_rating = 800
+effect = "cargo"
+
+[[mod]]
+id = "increased-seating"
+name = "Increased Seating (a seat a rating)"
+group = "seating"
+slot_type = "none"
+rating_min = 1
+rating_max = 50
+cf_per_rating = 1.0
+availability = "2"
+cost_per_rating = 1200
+requires = "passenger"
+effect = "seats"
+
+# Living space: the rating is the lifestyle (1 Squatter to 5 Luxury), the
+# count the occupants; a month of that lifestyle per occupant (SR6, p. 246).
+[[mod]]
+id = "living-space"
+name = "Living Space"
+group = "seating"
+slot_type = "none"
+rating_min = 1
+rating_max = 5
+cf_per_rating = 2.0
+availability = "1"
+availability_per_rating = 1
+many = true
+levels = [
+  { cost = 500 },
+  { cost = 2000 },
+  { cost = 5000 },
+  { cost = 10000 },
+  { cost = 100000 },
+]
+
+[[mod]]
+id = "portable-facility"
+name = "Portable Facility"
+group = "seating"
+slot_type = "none"
+cf = 50.0
+availability = "8"
+cost = 75000
+diy_fixed = 50000
+
+[[mod]]
+id = "rigger-cocoon"
+name = "Rigger Cocoon"
+group = "seating"
+slot_type = "none"
+cf = 1.0
+availability = "4"
+cost = 3000
+many = true
+requires = "passenger"
+
+# Smuggling compartment: the rating is its size in CF.
+[[mod]]
+id = "smuggling-compartment"
+name = "Smuggling Compartment (CF)"
+group = "seating"
+slot_type = "none"
+rating_min = 1
+rating_max = 4
+cf_per_rating = 1.0
+availability = "4(I)"
+cost_per_rating = 1000
+many = true
+
+[[mod]]
+id = "compartment-shielding"
+name = "Smuggling Compartment Shielding (CF of the compartment)"
+group = "seating"
+slot_type = "none"
+rating_min = 1
+rating_max = 4
+availability = "4(I)"
+cost_per_rating = 250
+many = true
+
+[[mod]]
+id = "valkyrie-module"
+name = "Valkyrie Module"
+group = "seating"
+slot_type = "none"
+cf = 2.0
+availability = "4"
+cost = 3000
+many = true
+requires = "valkyrie"
+
+[[mod]]
+id = "ejection-seat"
+name = "Ejection Seat"
+group = "seating"
+slot_type = "chassis"
+slots = 1.0
+availability = "6(L)"
+cost = 2000
+many = true
+
+# Electromagnetic shielding: the rating is the CF it isolates.
+[[mod]]
+id = "electromagnetic-shielding"
+name = "Electromagnetic Shielding (CF)"
+group = "seating"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 50
+slots = 0.5
+availability = "3(L)"
+cost_per_rating = 1000
+
+[[mod]]
+id = "interior-gas"
+name = "Extreme Interior Security (Gas Dispersal)"
+group = "seating"
+slot_type = "chassis"
+slots = 1.0
+availability = "4(I)"
+cost = 3000
+
+[[mod]]
+id = "interior-zapper"
+name = "Extreme Interior Security (Zapper)"
+group = "seating"
+slot_type = "chassis"
+slots = 2.0
+availability = "5(L)"
+cost = 6000
+
+[[mod]]
+id = "integrated-cyberarm"
+name = "Integrated Cyberarm"
+group = "chassis"
+slot_type = "chassis"
+slots = 1.0
+availability = "4"
+cost = 15000
+many = true
+
+[[mod]]
+id = "life-safety-1"
+name = "Life Safety System (Level 1)"
+group = "chassis"
+slot_type = "chassis"
+slots = 1.0
+availability = "4"
+cost_per_body = 1000
+exclusive = "life-safety"
+effect = "closed-form"
+
+[[mod]]
+id = "life-safety-2"
+name = "Life Safety System (Level 2)"
+group = "chassis"
+slot_type = "chassis"
+slots = 2.0
+availability = "6"
+cost_per_body = 3000
+exclusive = "life-safety"
+effect = "closed-form"
+
+[[mod]]
+id = "passenger-protection"
+name = "Passenger Protection System"
+group = "chassis"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 6
+slots_per_rating = 0.5
+availability = "3"
+cost_per_rating = 2500
+
+# Skin: forms (pp. 131–132). Slots and price come from the change from the
+# chassis's own form, worked out in mods.rs.
+
+[[mod]]
+id = "form-open"
+name = "Open Construction"
+group = "skin"
+slot_type = "chassis"
+exclusive = "form"
+effect = "form"
+
+[[mod]]
+id = "form-standard"
+name = "Standard Construction"
+group = "skin"
+slot_type = "chassis"
+exclusive = "form"
+effect = "form"
+
+[[mod]]
+id = "form-enclosed"
+name = "Totally Enclosed Construction"
+group = "skin"
+slot_type = "chassis"
+exclusive = "form"
+effect = "form"
+
+[[mod]]
+id = "realistic-features"
+name = "Realistic Features"
+group = "skin"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 4
+slots_per_rating = 1.0
+availability = "0"
+availability_per_rating = 2
+cost_per_rating_body = 1000
+
+# Skin: foundations (pp. 132–133). Standard armor's rating is the Armor
+# added (negative: removed), its range worked out in mods.rs.
+[[mod]]
+id = "standard-armor"
+name = "Standard Armor"
+group = "skin"
+slot_type = "none"
+rating_min = -50
+rating_max = 50
+availability = "3"
+cost_per_rating = 800
+effect = "armor"
+
+[[mod]]
+id = "ceramic-plate"
+name = "Ceramic Plate"
+group = "skin"
+slot_type = "chassis"
+slots_per_armor = 0.25
+availability = "5(L)"
+cost_per_armor = 1500
+
+[[mod]]
+id = "milspec-plate"
+name = "Milspec Plate"
+group = "skin"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 3
+effect = "milspec"
+levels = [
+  { slots = 2.0, availability = "9(I)", cost = 30000 },
+  { slots = 4.0, availability = "10(I)", cost = 40000 },
+  { slots = 6.0, availability = "11(I)", cost = 50000 },
+]
+
+# Skin: elements (pp. 133–134).
+
+[[mod]]
+id = "elemental-hardening"
+name = "Elemental Hardening"
+group = "skin"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 6
+slots_per_rating = 0.5
+availability = ""
+cost_per_rating = 1000
+many = true
+
+[[mod]]
+id = "ram-plating"
+name = "RAM Plating"
+group = "skin"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 6
+slots_per_rating = 0.5
+availability = "4(I)"
+cost_per_rating = 1500
+
+[[mod]]
+id = "grey-mana"
+name = "Grey Mana Integration"
+group = "skin"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 6
+slots_per_rating = 1.0
+availability = "4(I)"
+cost_per_rating = 2500
+exclusive = "grey-mana"
+
+[[mod]]
+id = "grey-mana-warding"
+name = "Grey Mana Warding"
+group = "skin"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 6
+slots_per_rating = 1.0
+availability = "4(I)"
+cost_per_rating = 4000
+exclusive = "grey-mana"
+effect = "enclosed-form"
+
+# Powertrain (pp. 134–138).
+
+[[mod]]
+id = "improved-acceleration"
+name = "Improved Acceleration"
+group = "powertrain"
+slot_type = "powertrain"
+rating_min = 1
+rating_max = 2
+slots_per_rating = 1.0
+availability = "3"
+cost_per_rating = 15000
+effect = "acceleration"
+
+[[mod]]
+id = "nitro-boost"
+name = "Nitro Boost"
+group = "powertrain"
+slot_type = "powertrain"
+slots = 2.0
+availability = "3(I)"
+cost = 5000
+
+[[mod]]
+id = "gridlink"
+name = "GridLink"
+group = "powertrain"
+slot_type = "none"
+availability = "2"
+cost = 500
+
+[[mod]]
+id = "hydrocarbon-converter"
+name = "Hydrocarbon Fuel Converter"
+group = "powertrain"
+slot_type = "powertrain"
+slots = 2.0
+availability = "5"
+cost_per_body = 1500
+
+[[mod]]
+id = "improved-economy"
+name = "Improved Economy/Capacity"
+group = "powertrain"
+slot_type = "powertrain"
+rating_min = 1
+rating_max = 3
+slots_per_rating = 1.0
+availability = "2"
+cost_per_rating = 6000
+
+[[mod]]
+id = "suncell"
+name = "Suncell"
+group = "powertrain"
+slot_type = "either"
+slots = 1.0
+availability = "2"
+cost = 9500
+
+# Gecko tips: a row per Size Class 1 to 4; the vehicle's sets the row.
+[[mod]]
+id = "gecko-tips"
+name = "Gecko Tips"
+group = "powertrain"
+slot_type = "powertrain"
+effect = "gecko"
+levels = [
+  { slots = 0.0, availability = "3", cost = 1500 },
+  { slots = 1.0, availability = "3", cost = 3000 },
+  { slots = 2.0, availability = "3", cost = 6500 },
+  { slots = 3.0, availability = "3", cost = 9000 },
+]
+
+# Secondary propulsion (p. 137): its own Handling, Acceleration, Speed
+# Interval, and Top Speed while deployed.
+[[mod]]
+id = "secondary-submarine"
+name = "Secondary Propulsion: Amphibious, Submarine"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 4.0
+availability = "6(L)"
+cost_per_body = 3000
+exclusive = "secondary"
+secondary = { handling = "5", acceleration = 5, speed_interval = 10, top_speed = 40 }
+
+[[mod]]
+id = "secondary-surface"
+name = "Secondary Propulsion: Amphibious, Surface"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 3.0
+availability = "3"
+cost_per_body = 1000
+exclusive = "secondary"
+secondary = { handling = "4", acceleration = 10, speed_interval = 15, top_speed = 60 }
+
+[[mod]]
+id = "secondary-glide"
+name = "Secondary Propulsion: Glide Package"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 2.0
+availability = "3"
+cost_per_body = 1500
+exclusive = "secondary"
+secondary = { handling = "5", acceleration = 5, speed_interval = 10, top_speed = 60 }
+
+[[mod]]
+id = "secondary-hovercraft"
+name = "Secondary Propulsion: Hovercraft"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 3.0
+availability = "6"
+cost_per_body = 3000
+exclusive = "secondary"
+secondary = { handling = "4", acceleration = 10, speed_interval = 15, top_speed = 90 }
+
+[[mod]]
+id = "secondary-rocket"
+name = "Secondary Propulsion: Rocket Booster"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 3.0
+availability = "8(I)"
+cost_per_body = 6000
+exclusive = "secondary"
+secondary = { handling = "7", acceleration = 100, speed_interval = 50, top_speed = 300 }
+
+[[mod]]
+id = "secondary-rotor"
+name = "Secondary Propulsion: Rotor"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 4.0
+availability = "6(L)"
+cost_per_body = 5000
+exclusive = "secondary"
+secondary = { handling = "5", acceleration = 10, speed_interval = 20, top_speed = 120 }
+
+[[mod]]
+id = "secondary-tracked"
+name = "Secondary Propulsion: Tracked"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 2.0
+availability = "5"
+cost_per_body = 2000
+exclusive = "secondary"
+secondary = { handling = "4/2", acceleration = 4, speed_interval = 15, top_speed = 60 }
+
+[[mod]]
+id = "secondary-vector-thrust"
+name = "Secondary Propulsion: Vector Thrust (LAV)"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 5.0
+availability = "7(L)"
+cost_per_body = 9000
+exclusive = "secondary"
+secondary = { handling = "4", acceleration = 25, speed_interval = 50, top_speed = 300 }
+
+[[mod]]
+id = "secondary-walker"
+name = "Secondary Propulsion: Walker"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 4.0
+availability = "6"
+cost_per_body = 4000
+exclusive = "secondary"
+secondary = { handling = "3/3", acceleration = 10, speed_interval = 15, top_speed = 30 }
+
+[[mod]]
+id = "secondary-wheeled"
+name = "Secondary Propulsion: Wheeled"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 2.0
+availability = "3"
+cost_per_body = 1000
+exclusive = "secondary"
+secondary = { handling = "3/4", acceleration = 10, speed_interval = 15, top_speed = 120 }
+
+[[mod]]
+id = "secondary-winged"
+name = "Secondary Propulsion: Winged"
+group = "propulsion"
+slot_type = "powertrain"
+slots = 4.0
+availability = "5(L)"
+cost_per_body = 4500
+exclusive = "secondary"
+secondary = { handling = "5", acceleration = 15, speed_interval = 25, top_speed = 150 }
+
+[[mod]]
+id = "improved-stability"
+name = "Improved Stability"
+group = "powertrain"
+slot_type = "powertrain"
+rating_min = 1
+rating_max = 3
+slots_per_rating = 2.0
+availability = "3"
+cost_per_rating = 7000
+
+[[mod]]
+id = "racing-suspension"
+name = "Racing Suspension"
+group = "powertrain"
+slot_type = "powertrain"
+slots = 3.0
+availability = "6(L)"
+cost = 20000
+
+[[mod]]
+id = "tuned-suspension"
+name = "Tuned Suspension"
+group = "powertrain"
+slot_type = "powertrain"
+slots = 1.0
+availability = "4"
+cost = 12000
+
+[[mod]]
+id = "top-speed-increase"
+name = "Top Speed Increase"
+group = "powertrain"
+slot_type = "powertrain"
+rating_min = 1
+rating_max = 3
+slots_per_rating = 1.0
+availability = "3"
+cost_per_rating = 8000
+effect = "top-speed"
+
+# Electronics (pp. 138–142).
+
+[[mod]]
+id = "chameleon-coating"
+name = "Chameleon Coating"
+group = "electronics"
+slot_type = "electronics"
+rating_min = 1
+rating_max = 4
+slots = 2.0
+availability = "8(I)"
+cost_per_rating = 4500
+effect = "closed-form"
+
+[[mod]]
+id = "electrochromic-paint"
+name = "Electrochromic Paint"
+group = "electronics"
+slot_type = "electronics"
+slots = 1.0
+availability = "2"
+cost = 1500
+
+[[mod]]
+id = "passive-stealth"
+name = "Passive Stealth Features"
+group = "electronics"
+slot_type = "electronics"
+slots = 1.0
+availability = "3"
+cost = 1000
+
+[[mod]]
+id = "zapper"
+name = "Zapper"
+group = "electronics"
+slot_type = "electronics"
+slots = 1.0
+availability = "4(L)"
+cost = 6000
+
+# Anti-theft: rating 1 comes with any Pilot, so it's free.
+[[mod]]
+id = "anti-theft"
+name = "Anti-Theft System"
+group = "electronics"
+slot_type = "electronics"
+rating_min = 1
+rating_max = 4
+levels = [
+  { slots = 0.0, availability = "", cost = 0 },
+  { slots = 0.0, availability = "3", cost = 2000 },
+  { slots = 1.0, availability = "4(L)", cost = 3500 },
+  { slots = 2.0, availability = "6(I)", cost = 9000 },
+]
+
+[[mod]]
+id = "c3"
+name = "Command and Control Comms (C3)"
+group = "electronics"
+slot_type = "electronics"
+slots = 1.0
+availability = "4"
+cost = 7000
+
+[[mod]]
+id = "control-lockout"
+name = "Electronic Control Lockout"
+group = "electronics"
+slot_type = "electronics"
+slots = 0.5
+availability = "3"
+cost = 1500
+
+[[mod]]
+id = "ecm"
+name = "Electronic Countermeasures (ECM)"
+group = "electronics"
+slot_type = "electronics"
+rating_min = 1
+rating_max = 6
+slots = 1.0
+availability = "4(L)"
+cost_per_rating = 500
+
+[[mod]]
+id = "integrated-matrix-device"
+name = "Integrated Matrix Device (plus the device)"
+group = "electronics"
+slot_type = "none"
+availability = "2"
+cost = 800
+many = true
+
+[[mod]]
+id = "nanomaintenance"
+name = "Nanomaintenance Repair System"
+group = "electronics"
+slot_type = "electronics"
+rating_min = 1
+rating_max = 4
+slots_per_rating = 1.0
+availability = "0(L)"
+availability_per_rating = 2
+cost_per_rating = 9000
+
+[[mod]]
+id = "xguide-override"
+name = "xGuide Override"
+group = "electronics"
+slot_type = "electronics"
+slots = 1.0
+availability = "4(I)"
+cost = 5000
+
+# Improved Pilot and Enhanced Sensors replace the console's Pilot or Sensor
+# with their rating (decided).
+[[mod]]
+id = "improved-pilot"
+name = "Improved Pilot"
+group = "electronics"
+slot_type = "electronics"
+rating_min = 1
+rating_max = 9
+slots_per_rating = 1.0
+availability = "0"
+availability_per_rating = 1
+cost_per_rating = 5000
+effect = "pilot"
+
+[[mod]]
+id = "retrans-unit"
+name = "Retrans Unit"
+group = "electronics"
+slot_type = "electronics"
+slots = 1.0
+availability = "3"
+cost = 7000
+
+[[mod]]
+id = "rigger-interface"
+name = "Rigger Interface"
+group = "electronics"
+slot_type = "none"
+availability = "2"
+cost = 1000
+requires = "passenger"
+
+[[mod]]
+id = "network-sharing"
+name = "Network Sharing Enhancement"
+group = "electronics"
+slot_type = "electronics"
+slots = 4.0
+availability = "9(L)"
+cost = 85000
+
+[[mod]]
+id = "enhanced-sensors"
+name = "Enhanced Sensors"
+group = "electronics"
+slot_type = "electronics"
+rating_min = 1
+rating_max = 9
+slots_per_rating = 1.0
+availability = "0"
+availability_per_rating = 1
+cost_per_rating = 5000
+effect = "sensor"
+
+# Hardpoint devices (pp. 142–144): no slots, but a hardpoint each.
+
+[[mod]]
+id = "small-weapon-mount"
+name = "Small Weapon Mount"
+group = "device"
+slot_type = "none"
+availability = "3(I)"
+cost = 1500
+many = true
+hardpoint = "small"
+
+[[mod]]
+id = "small-turreted-weapon-mount"
+name = "Small Turreted Weapon Mount"
+group = "device"
+slot_type = "none"
+availability = "5(I)"
+cost = 6500
+many = true
+hardpoint = "standard"
+
+[[mod]]
+id = "standard-weapon-mount"
+name = "Standard Weapon Mount"
+group = "device"
+slot_type = "none"
+availability = "4(I)"
+cost = 2500
+many = true
+hardpoint = "standard"
+
+[[mod]]
+id = "standard-turreted-weapon-mount"
+name = "Standard Turreted Weapon Mount"
+group = "device"
+slot_type = "none"
+availability = "6(I)"
+cost = 8500
+many = true
+hardpoint = "large"
+
+[[mod]]
+id = "large-weapon-mount"
+name = "Large Weapon Mount"
+group = "device"
+slot_type = "none"
+availability = "5(I)"
+cost = 5000
+many = true
+hardpoint = "large"
+
+[[mod]]
+id = "large-turreted-weapon-mount"
+name = "Large Turreted Weapon Mount"
+group = "device"
+slot_type = "none"
+availability = "7(I)"
+cost = 12000
+many = true
+hardpoint = "huge"
+
+[[mod]]
+id = "blow-away-panels"
+name = "Blow-Away Panels (1 small to 4 huge)"
+group = "device"
+slot_type = "none"
+rating_min = 1
+rating_max = 4
+availability = "2(I)"
+cost_per_rating = 100
+many = true
+
+[[mod]]
+id = "small-pop-out"
+name = "Pop-Out Concealment (small)"
+group = "device"
+slot_type = "chassis"
+slots = 0.5
+availability = "2(I)"
+cost = 1500
+many = true
+
+[[mod]]
+id = "standard-pop-out"
+name = "Pop-Out Concealment (standard)"
+group = "device"
+slot_type = "chassis"
+slots = 1.0
+availability = "3(I)"
+cost = 3000
+many = true
+
+[[mod]]
+id = "large-pop-out"
+name = "Pop-Out Concealment (large)"
+group = "device"
+slot_type = "chassis"
+slots = 2.0
+availability = "3(I)"
+cost = 4500
+many = true
+
+[[mod]]
+id = "huge-pop-out"
+name = "Pop-Out Concealment (huge)"
+group = "device"
+slot_type = "chassis"
+slots = 3.0
+availability = "4(I)"
+cost = 6000
+many = true
+
+[[mod]]
+id = "mini-drone-rack"
+name = "Drone Rack (mini/micro, 5 drones)"
+group = "device"
+slot_type = "none"
+availability = "3"
+cost = 1000
+many = true
+hardpoint = "small"
+
+[[mod]]
+id = "small-drone-rack"
+name = "Drone Rack (small, 3 drones)"
+group = "device"
+slot_type = "none"
+availability = "3"
+cost = 2000
+many = true
+hardpoint = "standard"
+
+[[mod]]
+id = "medium-drone-rack"
+name = "Drone Rack (medium, 1 drone)"
+group = "device"
+slot_type = "none"
+availability = "4"
+cost = 5000
+many = true
+hardpoint = "large"
+
+[[mod]]
+id = "large-drone-rack"
+name = "Drone Rack (large, 1 drone)"
+group = "device"
+slot_type = "none"
+availability = "6"
+cost = 10000
+many = true
+hardpoint = "huge"
+
+[[mod]]
+id = "mini-drone-storage"
+name = "Expanded Drone Storage (mini/micro, 5 more)"
+group = "device"
+slot_type = "chassis"
+slots = 0.5
+availability = "3"
+cost = 500
+many = true
+
+[[mod]]
+id = "small-drone-storage"
+name = "Expanded Drone Storage (small, 3 more)"
+group = "device"
+slot_type = "chassis"
+slots = 1.0
+availability = "3"
+cost = 1000
+many = true
+
+[[mod]]
+id = "medium-drone-storage"
+name = "Expanded Drone Storage (medium, 1 more)"
+group = "device"
+slot_type = "chassis"
+slots = 1.0
+availability = "4"
+cost = 2000
+many = true
+
+[[mod]]
+id = "large-drone-storage"
+name = "Expanded Drone Storage (large, 1 more)"
+group = "device"
+slot_type = "chassis"
+slots = 2.0
+availability = "4"
+cost = 5000
+many = true
+
+[[mod]]
+id = "expanded-ammo-bin"
+name = "Expanded Ammo Bin (1 small to 3 large)"
+group = "device"
+slot_type = "chassis"
+rating_min = 1
+rating_max = 3
+slots_per_rating = 0.5
+availability = "3(L)"
+cost_per_rating = 400
+many = true
+
+[[mod]]
+id = "small-mechanical-arm"
+name = "Mechanical Arm (small, Strength 1–2)"
+group = "device"
+slot_type = "none"
+availability = "2"
+cost = 2000
+many = true
+hardpoint = "small"
+
+[[mod]]
+id = "medium-mechanical-arm"
+name = "Mechanical Arm (medium, Strength 3–5)"
+group = "device"
+slot_type = "none"
+availability = "2"
+cost = 4000
+many = true
+hardpoint = "standard"
+
+[[mod]]
+id = "large-mechanical-arm"
+name = "Mechanical Arm (large, Strength 6–10)"
+group = "device"
+slot_type = "none"
+availability = "3"
+cost = 7000
+many = true
+hardpoint = "large"
+
+[[mod]]
+id = "huge-mechanical-arm"
+name = "Mechanical Arm (huge, Strength 11–20)"
+group = "device"
+slot_type = "none"
+availability = "5"
+cost = 11000
+many = true
+hardpoint = "huge"
+
+[[mod]]
+id = "ram-plate"
+name = "Ram Plate"
+group = "device"
+slot_type = "none"
+availability = "3(L)"
+cost_per_body = 250
+hardpoint = "standard"
+
+[[mod]]
+id = "winch"
+name = "Winch"
+group = "device"
+slot_type = "none"
+rating_min = 1
+rating_max = 2
+availability = "0"
+availability_per_rating = 2
+many = true
+hardpoint = "standard"
+levels = [{ cost = 750 }, { cost = 4000 }]

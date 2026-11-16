@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use crate::catalog::{Catalog, DroneSize, Kind};
 use crate::design::Design;
+use crate::mods::{self, ModsReport};
 
 /// Everything the UI shows for a design.
 #[derive(Debug, Clone, Serialize)]
@@ -36,8 +37,14 @@ pub struct Report {
     pub problems: Vec<String>,
     /// Features that come with the choices (underwater adaptation, say).
     pub notes: Vec<String>,
-    /// The SR6 vehicle stat line, as a header row and a value row.
+    /// The SR6 vehicle stat line, as a header row and a value row: the
+    /// vehicle with its mods, at the price with all of them.
     pub stat_line: StatLine,
+    /// The stat line as designed, before any mods.
+    pub factory_stat_line: StatLine,
+    /// The vehicle's price plus the mods installed afterward, at a shop.
+    pub total_cost: i64,
+    pub mods: ModsReport,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -379,6 +386,25 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         }
     }
 
+    // Mods (pp. 120–144), on the vehicle as designed: its "factory" stats.
+    let is_aircraft = chassis.kind == Kind::Air || powertrain.medium == Kind::Air;
+    let factory = mods::Vehicle {
+        body,
+        armor,
+        handling_on_road,
+        handling_off_road,
+        acceleration,
+        speed_interval,
+        top_speed,
+        pilot: console.pilot,
+        sensor: console.sensor,
+        seat,
+        cargo_cf,
+    };
+    let context =
+        mods::Context { chassis, powertrain, size_class, is_aircraft, universal_slots: 2 * imp.easily_modified.max(0) };
+    let (modded, mods_report) = mods::apply(&design.mods, catalog, &context, &factory, &mut problems, &mut notes);
+
     // Build Points.
     let mut build_points = vec![
         Line { label: format!("Chassis: {}", chassis.name), points: chassis.build_points },
@@ -403,6 +429,10 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
             Some(m) => build_points.push(Line { label: m.name.clone(), points: m.build_points }),
             None => problems.push(format!("Unknown design modification “{id}” left out.")),
         }
+    }
+    // A mod built into the design costs 2 Build Points a slot (p. 151).
+    for line in mods_report.lines.iter().filter(|line| line.built_in) {
+        build_points.push(Line { label: format!("Built in: {}", line.label), points: line.build_points });
     }
     let base_points: i32 = build_points.iter().map(|line| line.points).sum();
 
@@ -445,16 +475,25 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     if build_point_value < 0 {
         problems.push(format!("The Build Point Value is {build_point_value}; it can't be below 0."));
     }
-    let cost = i64::from(build_point_value.max(0)) * 1000;
+    // The vehicle's price: its Build Point Value, plus the price of the mods
+    // built into it (p. 151). Mods installed afterward are priced apart.
+    let cost = i64::from(build_point_value.max(0)) * 1000 + mods_report.built_in_cost;
 
     // Availability (p. 155): 2, +1 for an aircraft, plus the qualities'.
-    if chassis.kind == Kind::Air || powertrain.medium == Kind::Air {
+    if is_aircraft {
         availability += 1;
     }
-    let availability = match legality {
-        Some(code) => format!("{availability}({code})"),
-        None => availability.to_string(),
-    };
+    let vehicle_availability = availability_text(availability, legality);
+    // With mods, the highest of the vehicle's and the mods' (p. 155).
+    if mods_report.availability > availability {
+        availability = mods_report.availability;
+    }
+    if let Some(code) = mods_report.legality.as_deref()
+        && (legality.is_none() || code == "I")
+    {
+        legality = Some(code);
+    }
+    let availability = availability_text(availability, legality);
 
     // Quality factors' own rules and features.
     let quality = |id: &str| design.has_quality(id);
@@ -522,49 +561,32 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     let day = ceil_div(build_point_value.max(0), 5);
     let design_test = DesignTest { day, week: ceil_div(day, 2), month: ceil_div(day, 4) };
 
-    let handling = if handling_on_road == handling_off_road {
-        handling_on_road.to_string()
-    } else {
-        format!("{handling_on_road}/{handling_off_road}")
-    };
-    let stat_line = StatLine {
-        headers: ["Hand", "Accel", "Spd Int", "Top Spd", "Body", "Armor", "Pilot", "Sensor", "Seat", "Avail", "Cost"]
-            .map(String::from)
-            .to_vec(),
-        values: vec![
-            handling.clone(),
-            acceleration.to_string(),
-            speed_interval.to_string(),
-            top_speed.to_string(),
-            body.to_string(),
-            armor.to_string(),
-            console.pilot.to_string(),
-            console.sensor.to_string(),
-            if is_drone { "—".into() } else { seat.to_string() },
-            availability.clone(),
-            format!("{}¥", thousands(cost)),
-        ],
-    };
+    // The stat line is the vehicle with all its mods, at its full price;
+    // the factory line is the design alone.
+    let total_cost = cost + mods_report.aftermarket_cost;
+    let stat_line = stat_line_of(&modded, is_drone, &availability, total_cost);
+    let factory_stat_line = stat_line_of(&factory, is_drone, &vehicle_availability, cost - mods_report.built_in_cost);
+    let m = &modded;
 
     Ok(Report {
         stats: Stats {
-            body,
-            armor,
-            handling_on_road,
-            handling_off_road,
-            handling,
-            seat,
+            body: m.body,
+            armor: m.armor,
+            handling_on_road: m.handling_on_road,
+            handling_off_road: m.handling_off_road,
+            handling: handling_text(m),
+            seat: m.seat,
             size_class,
             length: size_row.length.clone(),
             weight: size_row.weight.clone(),
-            cargo_cf,
-            cargo: cargo_text(cargo_cf),
-            acceleration,
-            speed_interval,
-            top_speed,
+            cargo_cf: m.cargo_cf,
+            cargo: cargo_text(m.cargo_cf),
+            acceleration: m.acceleration,
+            speed_interval: m.speed_interval,
+            top_speed: m.top_speed,
             speed_modifier,
-            pilot: console.pilot,
-            sensor: console.sensor,
+            pilot: m.pilot,
+            sensor: m.sensor,
             mod_slots: ModSlots {
                 chassis: body,
                 powertrain: body,
@@ -585,7 +607,49 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         problems,
         notes,
         stat_line,
+        factory_stat_line,
+        total_cost,
+        mods: mods_report,
     })
+}
+
+/// "3", or "5/3" when on-road and off-road Handling differ.
+fn handling_text(v: &mods::Vehicle) -> String {
+    if v.handling_on_road == v.handling_off_road {
+        v.handling_on_road.to_string()
+    } else {
+        format!("{}/{}", v.handling_on_road, v.handling_off_road)
+    }
+}
+
+/// "4", or "4(L)" with a legality code.
+fn availability_text(availability: i32, legality: Option<&str>) -> String {
+    match legality {
+        Some(code) => format!("{availability}({code})"),
+        None => availability.to_string(),
+    }
+}
+
+/// The SR6 vehicle stat line for a vehicle's stats.
+fn stat_line_of(v: &mods::Vehicle, is_drone: bool, availability: &str, cost: i64) -> StatLine {
+    StatLine {
+        headers: ["Hand", "Accel", "Spd Int", "Top Spd", "Body", "Armor", "Pilot", "Sensor", "Seat", "Avail", "Cost"]
+            .map(String::from)
+            .to_vec(),
+        values: vec![
+            handling_text(v),
+            v.acceleration.to_string(),
+            v.speed_interval.to_string(),
+            v.top_speed.to_string(),
+            v.body.to_string(),
+            v.armor.to_string(),
+            v.pilot.to_string(),
+            v.sensor.to_string(),
+            if is_drone { "—".into() } else { v.seat.to_string() },
+            availability.to_string(),
+            format!("{}¥", thousands(cost)),
+        ],
+    }
 }
 
 /// A number with thousands separators: 173000 → "173,000".

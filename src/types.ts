@@ -1,5 +1,5 @@
 // The shapes Rust sends and receives (bav-core's Catalog, Design, Report),
-// as JSON. Keep these in step with crates/bav-core/src/{catalog,design,calc}.rs.
+// as JSON. Keep these in step with crates/bav-core/src/{catalog,design,calc,mods}.rs.
 
 export type Kind = "ground" | "water" | "air" | "drone";
 
@@ -55,6 +55,16 @@ export interface Quality extends Choice {
   multiplier: number;
 }
 
+/** A vehicle mod ("Making It Yours"); data/mods.toml explains the fields. */
+export interface VehicleMod {
+  id: string;
+  name: string;
+  group: string;
+  rating_min: number | null;
+  rating_max: number | null;
+  many: boolean;
+}
+
 export interface Catalog {
   environments: string[];
   chassis: Chassis[];
@@ -63,6 +73,7 @@ export interface Catalog {
   improvement: Improvement[];
   modification: Modification[];
   quality: Quality[];
+  mods: VehicleMod[];
 }
 
 export interface Improvements {
@@ -91,6 +102,15 @@ export interface Design {
   environment: string;
   specialized_function: string;
   notes: string;
+  mods: InstalledMod[];
+}
+
+export interface InstalledMod {
+  id: string;
+  rating: number;
+  count: number;
+  built_in: boolean;
+  note: string;
 }
 
 export interface StatLine {
@@ -129,6 +149,34 @@ export interface Report {
   problems: string[];
   notes: string[];
   stat_line: StatLine;
+  factory_stat_line: StatLine;
+  total_cost: number;
+  mods: ModsReport;
+}
+
+export interface ModsReport {
+  lines: {
+    id: string;
+    label: string;
+    slots: number;
+    cf: number;
+    availability: string;
+    price: number;
+    diy_price: number;
+    built_in: boolean;
+    build_points: number;
+    install_test: string;
+  }[];
+  slots: { category: string; used: number; available: number }[];
+  universal_slots: number;
+  hardpoints: { free: number; added: number; used: number };
+  cargo_used: number;
+  built_in_points: number;
+  built_in_cost: number;
+  aftermarket_cost: number;
+  aftermarket_diy_cost: number;
+  secondary: { name: string; handling: string; acceleration: number; speed_interval: number; top_speed: number } | null;
+  form: string;
 }
 
 export function newDesign(): Design {
@@ -156,5 +204,6 @@ export function newDesign(): Design {
     environment: "",
     specialized_function: "",
     notes: "",
+    mods: [],
   };
 }

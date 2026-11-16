@@ -45,6 +45,10 @@ fn export_pdf(path: PathBuf, design: Design) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // Updates: checked against the public key in tauri.conf.json, so
+        // only releases signed with the project's key install.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![catalog, evaluate_design, open_design, save_design, export_pdf])
         .run(tauri::generate_context!())
         .expect("error while running ShadowrunBAV");

@@ -1,6 +1,6 @@
 # ShadowrunBAV
 
-A Windows app for designing vehicles and drones from scratch by the rules of *Shadowrun, Sixth World: Double Clutch* ("Build Your Dream", pp. 147–157).
+A Windows app for designing vehicles and drones from scratch by the rules of *Shadowrun, Sixth World: Double Clutch* ("Build Your Dream", pp. 147–157), and for modding them ("Making It Yours", pp. 120–144).
 
 Pick a chassis, powertrain, and console, then add design options, design modifications, and quality factors. The app works out:
 
@@ -8,16 +8,19 @@ Pick a chassis, powertrain, and console, then add design options, design modific
 - the speed calculation, step by step
 - the Build Points, line by line, with the quality factors' multipliers
 - the price, Availability, and the Engineering + Logic tests to design and build it
+- its mods: installed afterward (shop or do-it-yourself price, install test) or built into the design, with mod slots, hardpoints, and cargo space checked and the stat line updated
+- a PDF vehicle sheet laid out like the book's entries
 
 A design that breaks a rule still calculates, and the app says what to fix. Designs save as `.bav` files.
 
 You need the book: the app holds only the names and numbers its calculations use, never the book's rules text. Where the book contradicts itself, the choices made are listed in [DESIGN.md](DESIGN.md) under "Rules decisions".
 
-Not yet: the aftermarket mods ("Making It Yours").
 
 ## Download
 
 Installers are on the [Releases](../../releases) page. They aren't code-signed, so Windows SmartScreen shows "Windows protected your PC" the first time: choose **More info**, then **Run anyway**.
+
+Once installed, ShadowrunBAV checks for updates by itself and shows an "Update to …" button when there is one; Check for updates on the toolbar checks right away. (Version 0.1.1 has no updater: install the next version by hand once.)
 
 ## Building from source
 

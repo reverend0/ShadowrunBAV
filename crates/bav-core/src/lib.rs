@@ -6,14 +6,18 @@
 //! - `design`: a design, the player's choices.
 //! - `calc`: works a design out into stats, Build Points, cost, and tests.
 //! - `files`: reading and writing design files.
+//! - `mods`: vehicle mods ("Making It Yours"), on top of a design.
 //! - `pdf`: a design as a PDF vehicle sheet, laid out like the book's entries.
 
 pub mod calc;
 pub mod catalog;
 pub mod design;
 pub mod files;
+pub mod mods;
 pub mod pdf;
 
+#[cfg(test)]
+mod mod_tests;
 #[cfg(test)]
 mod tests;
 

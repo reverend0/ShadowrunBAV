@@ -14,6 +14,7 @@ use crate::calc::{Report, evaluate, thousands};
 use crate::catalog::{Catalog, Chassis, Kind};
 use crate::design::Design;
 use crate::files;
+use crate::mods::number;
 
 // US Letter, in points (1/72 inch), with 3/4-inch margins.
 const PAGE_WIDTH: f32 = 612.0;
@@ -63,6 +64,22 @@ pub fn vehicle_sheet(design: &Design, catalog: &Catalog) -> Result<Vec<u8>, Stri
     sheet.paragraph(Font::Italic, 11.0, &format!("({kind})"));
     sheet.gap(10.0);
     sheet.stat_table(&report);
+    // The mods, as the book lists a vehicle's: "Standard Equipment: …".
+    if !report.mods.lines.is_empty() {
+        sheet.gap(6.0);
+        let mods: Vec<&str> = report.mods.lines.iter().map(|line| line.label.as_str()).collect();
+        sheet.paragraph(Font::Regular, 10.0, &format!("Standard Equipment: {}", mods.join(", ")));
+    }
+    if let Some(s) = &report.mods.secondary {
+        sheet.paragraph(
+            Font::Regular,
+            10.0,
+            &format!(
+                "Secondary propulsion ({}): Handling {}, Acceleration {}, Speed Interval {}, Top Speed {}",
+                s.name, s.handling, s.acceleration, s.speed_interval, s.top_speed
+            ),
+        );
+    }
     if !design.notes.trim().is_empty() {
         sheet.gap(10.0);
         sheet.paragraph(Font::Regular, 10.0, design.notes.trim());
@@ -148,6 +165,23 @@ fn design_lines(r: &Report) -> Vec<String> {
         thousands(r.parts_cost),
         r.availability
     ));
+    let m = &r.mods;
+    if !m.lines.is_empty() {
+        let used: Vec<String> = m
+            .slots
+            .iter()
+            .map(|s| format!("{} {} of {}", s.category.to_lowercase(), number(s.used), s.available))
+            .collect();
+        lines.push(format!("Mod slots used: {}.", used.join(", ")));
+        if m.aftermarket_cost > 0 {
+            lines.push(format!(
+                "Mods installed afterward: {}¥ at a shop ({}¥ doing it yourself); {}¥ with all its mods.",
+                thousands(m.aftermarket_cost),
+                thousands(m.aftermarket_diy_cost),
+                thousands(r.total_cost)
+            ));
+        }
+    }
     lines.push(format!(
         "Design it: Engineering + Logic ({}, 1 day), ({}, 1 week), or ({}, 1 month) Extended test. \
          Build it: Engineering + Logic (20, 1 week) Extended test, in a facility.",

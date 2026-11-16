@@ -1,6 +1,6 @@
 [package]
 name = "shadowrun-bav"
-version = "0.1.1"
+version = "0.2.0"
 description = "Vehicle and drone builder for Shadowrun Sixth World (Double Clutch)"
 authors = ["reverend0"]
 edition = "2024"
@@ -20,4 +20,7 @@ tauri-build = { version = "2", features = [] }
 bav-core = { path = "../crates/bav-core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
+tauri-plugin-updater = "2.14.0"
+tauri-plugin-process = "2.4.0"
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"

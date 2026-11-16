@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ShadowrunBAV",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "identifier": "com.shadowrunbav.app",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -26,6 +26,14 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "msi"],
+    "createUpdaterArtifacts": true,
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENFOTk5RDE3NzQ5REZFRkQKUldUOS9wMTBGNTJaemc5Zmt0bXY4VXFTbUdJS3lzRkVpUDRPMmJXcW1HTnhsYThYTzlFMlZ0bmQK",
+      "endpoints": ["https://github.com/reverend0/ShadowrunBAV/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
   }
 }

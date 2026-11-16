@@ -138,9 +138,12 @@ weight = "2,000,000 kg"
 cargo_cf = 4000.0
 
 # Chassis (p. 150). `kind` is ground, water, air, or drone; a drone's
-# `drone_size` sets its Acceleration multiplier (see `calc.rs`).
+# `drone_size` sets its Acceleration multiplier (see `calc.rs`). `form` is its
+# skin (p. 131): standard unless open (riders outside it, as on a bike) or
+# enclosed (drones, p. 132).
 [[chassis]]
 id = "bike"
+form = "open"
 name = "Bike"
 kind = "ground"
 body = 4
@@ -197,6 +200,7 @@ size_class = 9
 
 [[chassis]]
 id = "personal-watercraft"
+form = "open"
 name = "Personal Watercraft"
 kind = "water"
 body = 4
@@ -286,6 +290,7 @@ size_class = 6
 
 [[chassis]]
 id = "drone-micro"
+form = "enclosed"
 name = "Drone, Micro"
 kind = "drone"
 drone_size = "micro"
@@ -298,6 +303,7 @@ size_class = 0
 
 [[chassis]]
 id = "drone-mini"
+form = "enclosed"
 name = "Drone, Mini"
 kind = "drone"
 drone_size = "mini"
@@ -310,6 +316,7 @@ size_class = 1
 
 [[chassis]]
 id = "drone-small"
+form = "enclosed"
 name = "Drone, Small"
 kind = "drone"
 drone_size = "small"
@@ -322,6 +329,7 @@ size_class = 2
 
 [[chassis]]
 id = "drone-medium"
+form = "enclosed"
 name = "Drone, Medium"
 kind = "drone"
 drone_size = "medium"
@@ -334,6 +342,7 @@ size_class = 3
 
 [[chassis]]
 id = "drone-large"
+form = "enclosed"
 name = "Drone, Large"
 kind = "drone"
 drone_size = "large"
