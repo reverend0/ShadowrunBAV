@@ -41,32 +41,39 @@ pub fn from_text(text: &str) -> Result<Design, String> {
     Ok(file.design)
 }
 
-/// Only `.bav` files are read or written, so a slip can't overwrite
-/// something else.
-fn check_extension(path: &Path) -> Result<(), String> {
+/// Only the app's own kinds of file are read or written (`.bav` designs,
+/// `.pdf` sheets), so a slip can't overwrite something else. `what` names
+/// the kind in the message: "a design file".
+pub(crate) fn check_extension(path: &Path, extension: &str, what: &str) -> Result<(), String> {
     match path.extension().and_then(|e| e.to_str()) {
-        Some(ext) if ext.eq_ignore_ascii_case("bav") => Ok(()),
-        _ => Err(format!("{} isn't a design file (.bav).", path.display())),
+        Some(ext) if ext.eq_ignore_ascii_case(extension) => Ok(()),
+        _ => Err(format!("{} isn't {what} (.{extension}).", path.display())),
     }
 }
 
 pub fn open(path: &Path) -> Result<Design, String> {
-    check_extension(path)?;
+    check_extension(path, "bav", "a design file")?;
     let text = fs::read_to_string(path).map_err(|e| format!("Couldn't read {}: {e}", path.display()))?;
     from_text(&text)
 }
 
-/// Saves a design: writes a temporary file beside it, flushes it to the
-/// disk, and renames it into place, so a crash mid-save leaves the old file
-/// whole.
+/// Saves a design.
 pub fn save(path: &Path, design: &Design) -> Result<(), String> {
-    check_extension(path)?;
-    let temp = path.with_extension("bav.tmp");
+    check_extension(path, "bav", "a design file")?;
+    write_atomically(path, to_text(design).as_bytes())
+}
+
+/// Writes a file through a temporary file beside it, flushed to the disk and
+/// renamed into place, so a crash mid-write leaves the old file whole.
+pub(crate) fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let mut temp = path.as_os_str().to_owned();
+    temp.push(".tmp");
+    let temp = std::path::PathBuf::from(temp);
     // The block's `?`s return early on any error; the closure gathers them
     // into one `io::Result` so they share one error message below.
     let write = || -> std::io::Result<()> {
         let mut file = fs::File::create(&temp)?;
-        file.write_all(to_text(design).as_bytes())?;
+        file.write_all(bytes)?;
         file.sync_all()?;
         fs::rename(&temp, path)
     };

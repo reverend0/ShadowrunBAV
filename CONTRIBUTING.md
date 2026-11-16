@@ -26,7 +26,7 @@ The first `tauri dev` compiles everything and takes a few minutes.
 ## Where things are
 
 - `data/design.toml`: the book's tables (size classes, chassis, powertrains, consoles, design options, design modifications, quality factors).
-- `crates/bav-core/src/`: `catalog.rs` (the tables), `design.rs` (a design), `calc.rs` (the calculations), `files.rs` (`.bav` files), `tests.rs`.
+- `crates/bav-core/src/`: `catalog.rs` (the tables), `design.rs` (a design), `calc.rs` (the calculations), `files.rs` (`.bav` files), `pdf.rs` (the PDF vehicle sheet), `tests.rs`.
 - `src-tauri/`: the window and its Tauri commands.
 - `src/`: the UI (`main.ts`), its text helpers (`format.ts`), and the JSON shapes shared with Rust (`types.ts`, kept in step with the Rust structs).
 
@@ -37,3 +37,4 @@ The first `tauri dev` compiles everything and takes a few minutes.
 - UI tests: `npm test`. Type check: `npm run typecheck`. Lint: `npm run lint`.
 - Build an installer: `npm run tauri build` (NSIS and MSI, in `target/release/bundle/`).
 - Print the catalog and a sample report as JSON (to check the UI outside the app): `cargo run -p bav-core --example report_json`.
+- Write a sample vehicle sheet: `cargo run -p bav-core --example sheet_pdf -- target/sample.pdf`.

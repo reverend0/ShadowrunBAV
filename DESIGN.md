@@ -23,14 +23,15 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
   - `data/design.toml`: the book's tables, built into the program (`include_str!`).
   - `src-tauri/`: the window, exposing four commands (`catalog`, `evaluate_design`, `open_design`, `save_design`).
   - `src/`: the UI in strict TypeScript with no framework.
-- A design file (`.bav`) is TOML holding the choices only, never results, so a file always follows the current rules: `format = 1`, then the design's fields. A field left out takes its default, so older or hand-edited files open. A file from a newer format is refused with a message. Saving writes a temporary file, flushes it, and renames it into place. Only `.bav` files are read or written.
+- A design file (`.bav`) is TOML holding the choices only, never results, so a file always follows the current rules: `format = 1`, then the design's fields. A field left out takes its default, so older or hand-edited files open; a design option level past ±100 is worked out as ±100 (flagged as past its limit), so a wild number can't break the arithmetic. A file from a newer format is refused with a message. Saving writes a temporary file, flushes it, and renames it into place. Only `.bav` files are read or written.
 
 ## The window
 
 - Left: the design. Name; Base (chassis grouped by ground, water, air, drones; powertrain grouped by medium; console), each option's label carrying its numbers; Design options, a level per functional improvement (a negative level is the improvement in reverse); Design modifications (engine type and Heavy Duty/Lightweight as radio buttons, the rest checkboxes); Quality factors (production and Security/Military as radio buttons; Environmental Adaptation asks for its environment and Specialized Function for what it's for); Notes.
 - Right, recalculated on every change: the SR6 vehicle stat line (`Hand Accel Spd Int Top Spd Body Armor Pilot Sensor Seat Avail Cost`, a drone's Seat an em dash), with Copy (tab-separated, header and values, to paste into a document or ShadowrunEdit); problems in red; Size Class, cargo, speed modifier, and mod slots; notes on what comes with the choices; the speed calculation step by step; the Build Points line by line with the multipliers; and price, Availability, the design test, the parts' price, and the build test.
 - A design that breaks a rule still calculates; the problems say what to fix.
-- New, Open, Save, Save As (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S). Unsaved changes show as a dot after the file name, and New or Open asks before discarding them.
+- New, Open, Save, Save As, Export PDF (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+P). Unsaved changes show as a dot after the file name, and New or Open asks before discarding them.
+- Export PDF writes a vehicle sheet (`pdf.rs`), US Letter, laid out like the book's vehicle entries: the name in bold, the type in italic parentheses (the chassis in lowercase, acronyms kept, `medium drone` for a drone chassis, a Specialized Function after a comma), then the stat table, its headers as the book prints them (`HAND ACC SPD/INT TOP/SPD BODY ARM PILOT SENS SEAT AVAIL COST`, SPD over INT) white on a dark band, and the Notes as the description. A Design section follows: the Build Points line by line, the quality factors and Build Point Value, Size Class, cargo, and mod slots, the price, parts, and Availability, the design and build tests, the notes on what comes with the choices, and any problems. The PDF is written by hand in the standard Helvetica fonts, so no font is embedded and nothing is added to the dependencies. Only `.pdf` files are written, through a temporary file like a design.
 
 ## The rules as calculated
 
@@ -40,7 +41,7 @@ All division rounds down unless noted.
 - Size Class: the chassis's, + Improved Size, up to 20, at most 2 levels down. A drone's size comes from its chassis (a different drone chassis), except that a large drone can be made bigger.
 - Body: the chassis's + Improved Body (4 levels either way) + 2 per level of Improved Size, then Heavy Duty × 1.5 or Lightweight × 0.5. Below 0 is a problem.
 - Armor: the chassis's + Improved Armor; more than twice the Body is a problem.
-- Handling (lower is better): the chassis's, the powertrain's change (hover −2; tracked −2 off road only), Improved Handling overall (5 BP a level) and on or off road only (3 BP a level), at most 3 levels better or worse on each, then Off Road Chassis (+1 on road, −1 off road). Shown `on/off` when they differ.
+- Handling (lower is better): the chassis's, the powertrain's change (hover −2; tracked −2 off road only), Improved Handling overall (5 BP a level) and on or off road only (3 BP a level), at most 3 levels better or worse on each, then Off Road Chassis (+1 on road, −1 off road). Shown `on/off` when they differ. Below 1 is shown as 1, and flagged.
 - Seats: the chassis's + Improved Seating (at most half the chassis's seats either way), × 1.5 per level of Improved Size, then Cargo Hauler halves (to no fewer than 2) and Mass Transit triples.
 - Cargo: the Size Class's (the Size Class table), plus a truck's 4 CF, + 2 CF per level of Improved Cargo Space (at most 3 levels, and no more than doubling it), then Cargo Hauler doubles it.
 - Speed, in this order:
@@ -52,7 +53,7 @@ All division rounds down unless noted.
   6. Off Road Chassis: Top Speed − 10.
   7. Multi-Engine: Acceleration and Top Speed × 2 (× 1.5 for a Cargo Hauler, half the bonus).
   8. Underpowered: Top Speed ÷ 2.
-  9. Below 0 is shown as 0, and flagged.
+  9. Acceleration or Top Speed below 0 is shown as 0, and a Speed Interval below 1 as 1; either is flagged.
 - Pilot and Sensor: the console's.
 - Mod slots: the final Body in each of Chassis, Powertrain, and Electronics, plus 2 universal slots per level of Easily Modified (at most 4 levels or the chassis's Body; no reverse).
 - Build Points: the chassis, powertrain, and console, each improvement's levels × its cost (negative in reverse), and the design modifications.
@@ -72,6 +73,7 @@ Where the book contradicts itself or leaves something open, the owner decided (2
 - Walker: the powertrain table's values (Acceleration 10, Speed Interval 15, Top Speed 30, 15 Build Points), not Example 3's 10, 40, and 10. Nothing else in Example 3 changes speed, and the secondary propulsion Walker (p. 137) agrees with the table.
 - High Performance Engine: 15 Build Points, as its entry says; Example 2 charged 25 (the Racing Engine's), so its total is 163, not 173.
 - The design test's threshold, Build Point Value ÷ 5 (and ÷ 2 or ÷ 4 for a week or a month), rounds up, as Examples 1 and 2 do (53 gives 11; 173 gives 35, 18 by the week). Example 3 rounds its 67 down to 13.
+- Handling and Speed Interval are at least 1: the book gives no floor, and Handling is a test's threshold. Reverse options (p. 151) can otherwise take them to 0 or below (a car on hover with Improved Handling 3; a sail with Improved Speed Interval −3).
 - Underpowered halves Top Speed only.
 - The small-drone Acceleration multiplier comes right after the speed modifier, before the engine type and Multi-Engine.
 - Quality factors apply to the Build Point Value everywhere, so the design test's threshold uses the multiplied value (Junkyard Frankenstein is labeled "× 0.5 BP").

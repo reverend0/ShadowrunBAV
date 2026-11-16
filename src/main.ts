@@ -148,7 +148,12 @@ function renderForm(): void {
   // Functional improvements: a level each, negative for the reverse.
   const levels = el("div", { class: "levels" });
   for (const imp of catalog.improvement) {
-    const input = el("input", { type: "number", step: "1", min: "-20", max: "20" });
+    // The book's limit where it's fixed (Easily Modified has no reverse);
+    // where it depends on the vehicle, the box allows ±20 and the report
+    // flags a level past the real limit.
+    const most = imp.max_level > 0 ? imp.max_level : 20;
+    const least = imp.id === "easily_modified" ? 0 : -most;
+    const input = el("input", { type: "number", step: "1", min: String(least), max: String(most) });
     input.value = String(design.improvements[imp.id]);
     input.addEventListener("change", () => {
       const level = Math.trunc(Number(input.value)) || 0;
@@ -420,6 +425,18 @@ const actions: Record<string, () => Promise<void>> = {
   },
   save: () => saveTo(path),
   saveAs: () => saveTo(null),
+  async exportPdf() {
+    const where = await save({
+      filters: [{ name: "PDF", extensions: ["pdf"] }],
+      defaultPath: `${design.name || "Vehicle"}.pdf`,
+    });
+    if (!where) return;
+    try {
+      await invoke("export_pdf", { path: where, design });
+    } catch (error) {
+      await message(String(error), { title: "ShadowrunBAV", kind: "error" });
+    }
+  },
 };
 
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-action]")) {
@@ -429,7 +446,8 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-action]
 document.addEventListener("keydown", (event) => {
   if (!event.ctrlKey && !event.metaKey) return;
   const key = event.key.toLowerCase();
-  const action = key === "n" ? "new" : key === "o" ? "open" : key === "s" ? (event.shiftKey ? "saveAs" : "save") : null;
+  const shortcuts: Record<string, string> = { n: "new", o: "open", s: event.shiftKey ? "saveAs" : "save", p: "exportPdf" };
+  const action = shortcuts[key] ?? null;
   if (action) {
     event.preventDefault();
     void actions[action]();

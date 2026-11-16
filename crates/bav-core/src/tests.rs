@@ -7,6 +7,7 @@ use crate::calc::{cargo_text, thousands};
 use crate::catalog::Catalog;
 use crate::design::{Design, Improvements};
 use crate::files;
+use crate::pdf;
 use crate::{Report, evaluate};
 
 fn design(chassis: &str, powertrain: &str, console: &str) -> Design {
@@ -562,5 +563,172 @@ fn saving_writes_the_file_and_leaves_no_temporary_file() {
     files::save(&path, &d).unwrap();
     assert_eq!(files::open(&path), Ok(d));
     assert!(!dir.join("drone.bav.tmp").exists());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+// Floors.
+
+#[test]
+fn handling_is_at_least_1() {
+    // Car 3, hover −2, Improved Handling 3: −2, shown as 1.
+    let mut d = design("car", "hover", "basic");
+    d.improvements.handling = 3;
+    let r = run(&d);
+    assert_eq!(r.stats.handling, "1");
+    assert!(r.problems.iter().any(|p| p.starts_with("Handling on road is -2")));
+}
+
+#[test]
+fn handling_off_road_alone_is_at_least_1() {
+    // Truck 4, tracked −2 off road, Improved Handling 3, Off Road Chassis −1:
+    // 4 − 3 + 1 = 2 on road, and 4 − 2 − 3 − 1 = −2 off road.
+    let mut d = with_mods(design("truck", "tracked", "basic"), &["off-road-chassis"]);
+    d.improvements.handling = 3;
+    let r = run(&d);
+    assert_eq!(r.stats.handling, "2/1");
+    assert!(r.problems.iter().any(|p| p.starts_with("Handling off road is -2")));
+    assert!(!r.problems.iter().any(|p| p.starts_with("Handling on road")));
+}
+
+#[test]
+fn speed_interval_is_at_least_1() {
+    // Sail 5, Improved Speed Interval −3: −10, shown as 1.
+    let mut d = design("boat", "sail", "basic");
+    d.improvements.speed_interval = -3;
+    let r = run(&d);
+    assert_eq!(r.stats.speed_interval, 1);
+    assert!(r.problems.iter().any(|p| p.starts_with("Speed Interval is -10")));
+}
+
+#[test]
+fn a_huge_level_from_a_hand_edited_file_is_flagged_without_overflowing() {
+    let text = "format = 1\nchassis = \"car\"\npowertrain = \"wheeled\"\nconsole = \"basic\"\n\n\
+                [improvements]\nbody = 2000000000\ntop_speed = -2000000000\n";
+    let d = files::from_text(text).expect("the file reads");
+    let r = run(&d);
+    assert!(r.problems.iter().any(|p| p.starts_with("Improved Body: at most 4 levels")));
+    assert!(r.problems.iter().any(|p| p.starts_with("Improved Top Speed: at most 3 levels in reverse")));
+}
+
+// The PDF vehicle sheet.
+
+fn sheet_text(d: &Design) -> String {
+    let bytes = pdf::vehicle_sheet(d, Catalog::builtin()).expect("the sheet is made");
+    // The sheet is ASCII throughout (other characters are octal escapes).
+    String::from_utf8(bytes).expect("the sheet is ASCII")
+}
+
+#[test]
+fn the_sheet_is_a_pdf_whose_cross_references_point_at_its_objects() {
+    let text = sheet_text(&design("car", "wheeled", "basic"));
+    assert!(text.starts_with("%PDF-1.4\n"));
+    assert!(text.ends_with("%%EOF\n"));
+    let start: usize = text.rsplit("startxref\n").next().unwrap().lines().next().unwrap().parse().unwrap();
+    assert!(text[start..].starts_with("xref\n"));
+    // Each "n" entry in the table is the byte where object 1, 2, … starts.
+    let entries = text[start..].lines().skip(3).take_while(|l| l.ends_with(" n "));
+    for (i, entry) in entries.enumerate() {
+        let offset: usize = entry[..10].parse().unwrap();
+        assert!(text[offset..].starts_with(&format!("{} 0 obj\n", i + 1)), "object {}", i + 1);
+    }
+}
+
+#[test]
+fn the_sheet_prints_the_books_stat_table() {
+    let mut d = design("car", "wheeled", "basic");
+    d.name = "Street Racer".into();
+    let text = sheet_text(&d);
+    let r = run(&d);
+    assert!(text.contains("(Street Racer) Tj"));
+    // Parentheses inside a PDF string are escaped with a backslash; `r"…"`
+    // is a raw string, where a backslash is just a backslash.
+    assert!(text.contains(r"(\(car\)) Tj"));
+    for header in ["HAND", "ACC", "SPD", "INT", "TOP", "BODY", "ARM", "PILOT", "SENS", "SEAT", "AVAIL", "COST"] {
+        assert!(text.contains(&format!("({header}) Tj")), "{header}");
+    }
+    // The cost's ¥ is byte 0xA5 in the fonts' encoding, octal 245.
+    let cost = format!(r"({},000\245) Tj", r.build_point_value);
+    assert!(text.contains(&cost), "{cost}");
+    assert!(text.contains(&format!("({}) Tj", r.stats.top_speed)));
+}
+
+#[test]
+fn the_sheet_has_the_notes_as_its_description_and_the_design_after() {
+    let mut d = design("car", "wheeled", "basic");
+    d.notes = "A runner's getaway car.".into();
+    let text = sheet_text(&d);
+    assert!(text.contains("(A runner's getaway car.) Tj"));
+    assert!(text.contains("(Design) Tj"));
+    assert!(text.contains("(Build Points: Chassis: Car"));
+    assert!(text.contains("(Design it: Engineering + Logic"));
+}
+
+#[test]
+fn the_sheet_lists_the_designs_problems() {
+    let mut d = design("car", "hover", "basic");
+    d.improvements.handling = 3;
+    assert!(sheet_text(&d).contains("Handling on road is -2"));
+}
+
+#[test]
+fn long_notes_go_on_to_a_second_page() {
+    let mut d = design("car", "wheeled", "basic");
+    d.notes = "A long description of the vehicle. ".repeat(400);
+    let text = sheet_text(&d);
+    assert!(text.contains("/Count 2") || text.contains("/Count 3"));
+}
+
+#[test]
+fn the_entrys_type_is_the_chassis_in_lowercase_keeping_acronyms() {
+    let c = Catalog::builtin();
+    let kind = |id: &str| pdf::vehicle_type(c.chassis(id).unwrap());
+    assert_eq!(kind("car"), "car");
+    assert_eq!(kind("van"), "van/SUV");
+    assert_eq!(kind("fixed-wing"), "fixed wing");
+    assert_eq!(kind("lta"), "LTA (lighter than air)");
+    assert_eq!(kind("drone-medium"), "medium drone");
+}
+
+#[test]
+fn the_entrys_type_adds_a_specialized_function() {
+    let mut d = with_qualities(design("van", "wheeled", "basic"), &["specialized-function"]);
+    d.specialized_function = "ambulance".into();
+    assert!(sheet_text(&d).contains(r"(\(van/SUV, ambulance\)) Tj"));
+}
+
+#[test]
+fn text_is_encoded_for_the_pdf_fonts() {
+    assert_eq!(pdf::win_ansi('A'), b'A');
+    assert_eq!(pdf::win_ansi('¥'), 0xA5);
+    assert_eq!(pdf::win_ansi('—'), 0x97);
+    assert_eq!(pdf::win_ansi('’'), 0x92);
+    assert_eq!(pdf::win_ansi('★'), b'?');
+}
+
+#[test]
+fn wrapped_lines_fit_the_width() {
+    let text = "The quick brown fox jumps over the lazy dog. ".repeat(10);
+    let lines = pdf::wrap(&text, pdf::Font::Regular, 10.0, 200.0);
+    assert!(lines.len() > 5);
+    // Helvetica 10 pt averages about 5 points a character, so 200 points
+    // holds about 40.
+    assert!(lines.iter().all(|l| l.len() <= 45), "{lines:?}");
+    assert_eq!(lines.join(" "), text.trim_end());
+}
+
+#[test]
+fn a_sheet_is_only_written_as_a_pdf() {
+    let d = design("car", "wheeled", "basic");
+    let err = pdf::export(std::path::Path::new("car.bav"), &d, Catalog::builtin()).unwrap_err();
+    assert!(err.contains("isn't a PDF"));
+}
+
+#[test]
+fn a_sheet_is_written_to_its_file() {
+    let dir = std::env::temp_dir().join(format!("bav-pdf-test-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("Car.pdf");
+    pdf::export(&path, &design("car", "wheeled", "basic"), Catalog::builtin()).unwrap();
+    assert!(std::fs::read(&path).unwrap().starts_with(b"%PDF"));
     std::fs::remove_dir_all(&dir).unwrap();
 }

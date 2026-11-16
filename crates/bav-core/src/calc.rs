@@ -125,7 +125,11 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         catalog.powertrain(&design.powertrain).ok_or_else(|| format!("Unknown powertrain “{}”", design.powertrain))?;
     let console = catalog.console(&design.console).ok_or_else(|| format!("Unknown console “{}”", design.console))?;
 
-    let imp = &design.improvements;
+    // Levels past ±100 (no option goes past 20) only come from a hand-edited
+    // file; they're held there so the arithmetic can't overflow, and the
+    // limit checks below still flag them. `clamped` returns a new value, and
+    // `&` borrows it: Rust keeps the temporary alive as long as `imp` is used.
+    let imp = &design.improvements.clamped(100);
     let has = |id: &str| design.has_modification(id);
     let is_drone = chassis.kind == Kind::Drone;
     let mut problems = Vec::new();
@@ -211,6 +215,16 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
 
     // The closure's borrow of `problems` ends with its last use above, so
     // `problems` can be used directly from here on.
+
+    // Handling is a test's threshold, so it's at least 1 (decided; see
+    // DESIGN.md). `&mut` lets the loop change both values in place.
+    for (value, road) in [(&mut handling_on_road, "on road"), (&mut handling_off_road, "off road")] {
+        if *value < 1 {
+            problems.push(format!("Handling {road} is {}: it can't be below 1. It's shown as 1.", *value));
+            *value = 1;
+        }
+    }
+
     if body < 0 {
         problems.push(format!("Body can't go below 0 (it's {body})."));
         body = 0;
@@ -245,7 +259,11 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     });
 
     let mut acceleration = powertrain.acceleration + 5 * imp.acceleration;
-    let speed_interval = powertrain.speed_interval + 5 * imp.speed_interval;
+    let mut speed_interval = powertrain.speed_interval + 5 * imp.speed_interval;
+    if speed_interval < 1 {
+        problems.push(format!("Speed Interval is {speed_interval}: too little for this powertrain. It's shown as 1."));
+        speed_interval = 1;
+    }
     let mut top_speed = powertrain.top_speed + 25 * imp.top_speed;
     if imp.acceleration != 0 || imp.top_speed != 0 {
         speed_steps.push(format!("Improved: Acceleration {acceleration}, Top Speed {top_speed}"));

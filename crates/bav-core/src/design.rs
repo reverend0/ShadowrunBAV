@@ -88,6 +88,30 @@ impl Improvements {
             ("easily_modified", self.easily_modified),
         ]
     }
+
+    /// A copy with every level held within ±`limit`.
+    ///
+    /// A hand-edited file can hold any number, and multiplying a level near
+    /// `i32::MAX` would overflow (a panic in a debug build, a wrong answer in
+    /// a release one). `Self { … }` builds the copy field by field;
+    /// `clamp` returns the value moved into the range.
+    pub fn clamped(&self, limit: i32) -> Self {
+        let c = |level: i32| level.clamp(-limit, limit);
+        Self {
+            body: c(self.body),
+            armor: c(self.armor),
+            handling: c(self.handling),
+            handling_on_road: c(self.handling_on_road),
+            handling_off_road: c(self.handling_off_road),
+            seating: c(self.seating),
+            size: c(self.size),
+            acceleration: c(self.acceleration),
+            speed_interval: c(self.speed_interval),
+            top_speed: c(self.top_speed),
+            cargo: c(self.cargo),
+            easily_modified: c(self.easily_modified),
+        }
+    }
 }
 
 impl Design {
