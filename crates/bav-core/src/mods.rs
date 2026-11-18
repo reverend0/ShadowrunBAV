@@ -36,6 +36,8 @@ pub struct Context<'a> {
     pub is_aircraft: bool,
     /// Easily Modified's universal slots.
     pub universal_slots: i32,
+    /// Whether built-in mods count against the slots (RULINGS.md R19).
+    pub built_in_uses_slots: bool,
 }
 
 impl Context<'_> {
@@ -206,7 +208,11 @@ pub fn apply(
     let mut either = 0.0;
     for w in &worked {
         let total = w.slots * f64::from(w.count);
+        // A built-in mod still costs Build Points by its slots, but with
+        // R19 off it doesn't take any of the vehicle's.
+        let takes_slots = ctx.built_in_uses_slots || !w.installed.built_in;
         match w.def.slot_type {
+            _ if !takes_slots => {}
             SlotType::Chassis => used[0] += total,
             SlotType::Powertrain => used[1] += total,
             SlotType::Electronics => used[2] += total,

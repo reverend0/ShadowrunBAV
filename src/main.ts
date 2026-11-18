@@ -511,6 +511,15 @@ function modsFieldset(): HTMLElement {
       { class: "hint" },
       "Installed afterward, or built into the design (2 Build Points a slot, its price added to the vehicle's).",
     ),
+    checkbox(
+      "Built-in mods use mod slots",
+      design.built_in_uses_slots,
+      (on) => {
+        design.built_in_uses_slots = on;
+        changed();
+      },
+      "The book doesn't say whether a mod built into the design uses the vehicle's mod slots (RULINGS.md R19). Unticked, they cost Build Points only.",
+    ),
     ...design.mods.map(modRow),
     add,
   );

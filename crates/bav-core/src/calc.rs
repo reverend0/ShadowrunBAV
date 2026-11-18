@@ -404,8 +404,14 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         seat,
         cargo_cf,
     };
-    let context =
-        mods::Context { chassis, powertrain, size_class, is_aircraft, universal_slots: 2 * imp.easily_modified.max(0) };
+    let context = mods::Context {
+        chassis,
+        powertrain,
+        size_class,
+        is_aircraft,
+        universal_slots: 2 * imp.easily_modified.max(0),
+        built_in_uses_slots: design.built_in_uses_slots,
+    };
     let (modded, mods_report) = mods::apply(&design.mods, catalog, &context, &factory, &mut problems, &mut notes);
     block::check_weapons(design, &mut problems);
 

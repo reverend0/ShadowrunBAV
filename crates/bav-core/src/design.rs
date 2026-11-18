@@ -34,6 +34,10 @@ pub struct Design {
     pub weapons: Vec<Weapon>,
     /// How the stat block is laid out, as in ShadowrunEdit.
     pub layout: Layout,
+    /// Whether a mod built into the design uses the vehicle's mod slots
+    /// (RULINGS.md R19). The book doesn't say; on by default, and a file
+    /// saved before the choice existed gets the default.
+    pub built_in_uses_slots: bool,
 }
 
 /// A stat block's layout, ShadowrunEdit's two modes: a gear book's (Avail
@@ -123,6 +127,7 @@ impl Default for Design {
             mods: Vec::new(),
             weapons: Vec::new(),
             layout: Layout::Gear,
+            built_in_uses_slots: true,
         }
     }
 }

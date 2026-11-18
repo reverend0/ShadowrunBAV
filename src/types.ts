@@ -105,6 +105,8 @@ export interface Design {
   mods: InstalledMod[];
   weapons: Weapon[];
   layout: "gear" | "gamemaster";
+  /** Whether built-in mods use the vehicle's mod slots (RULINGS.md R19). */
+  built_in_uses_slots: boolean;
 }
 
 /** A weapon, typed in; its mount sets its ammunition and adds 2 to its Attack Ratings. */
@@ -233,5 +235,6 @@ export function newDesign(): Design {
     mods: [],
     weapons: [],
     layout: "gear",
+    built_in_uses_slots: true,
   };
 }

@@ -218,6 +218,35 @@ fn a_built_in_mod_costs_2_build_points_a_slot_rounded_up() {
 }
 
 #[test]
+fn a_built_in_mod_uses_mod_slots_by_default() {
+    // R19: 22 chassis slots built in on a Body 10 car is 2 too many.
+    let d = with_installed(car(), &[("extreme-environmental", 0, 22, true)]);
+    assert!(d.built_in_uses_slots);
+    let r = run(&d);
+    assert_eq!(r.mods.slots[0].used, 22.0);
+    assert!(has_problem(&r, "The mods need 2 more mod slots"), "{:?}", r.problems);
+}
+
+#[test]
+fn with_r19_off_a_built_in_mod_uses_no_slots_but_still_costs_build_points() {
+    let mut d = with_installed(car(), &[("extreme-environmental", 0, 22, true), ("nitro-boost", 0, 1, false)]);
+    d.built_in_uses_slots = false;
+    let r = run(&d);
+    assert!(r.problems.is_empty(), "{:?}", r.problems);
+    assert_eq!(r.mods.slots[0].used, 0.0);
+    assert_eq!(r.mods.built_in_points, 44);
+    // A mod installed afterward still takes its slots.
+    assert_eq!(r.mods.slots[1].used, 2.0);
+}
+
+#[test]
+fn an_older_design_file_has_built_in_mods_use_slots() {
+    assert!(files::from_text("format = 1\nchassis = \"car\"\n").unwrap().built_in_uses_slots);
+    let d = Design { built_in_uses_slots: false, ..car() };
+    assert_eq!(files::from_text(&files::to_text(&d)).unwrap(), d);
+}
+
+#[test]
 fn availability_is_the_highest_of_the_vehicle_and_its_mods() {
     let r = run(&with(car(), &["emergency-lights", "oil-slick-sprayer"]));
     assert_eq!(r.availability, "4(I)"); // I outranks L

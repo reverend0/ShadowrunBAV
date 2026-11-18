@@ -51,7 +51,7 @@ Found another? [Open an issue](../../issues) with the page and what disagrees.
 
 **R18. Run-flat racing or off-road tires cost +50%** (p. 122). The tires' entry says run-flat adds 50% to their price; Example 1 pays 1,800¥ (racing tires plus a set of run-flat tires). *The app:* +50%: 1,500¥ for a car.
 
-**R19. A mod built into the design uses mod slots** (p. 151). Built in, a mod costs 2 Build Points a slot and its price; the book doesn't say whether it also uses the vehicle's slots. *The app:* it does.
+**R19. A mod built into the design uses mod slots** (p. 151). Built in, a mod costs 2 Build Points a slot and its price; the book doesn't say whether it also uses the vehicle's slots. *The app:* it does, by default; it's a choice saved with each design (Mods: "Built-in mods use mod slots"). Unticked, a built-in mod costs its Build Points and price but takes none of the vehicle's slots; mods installed afterward still do.
 
 **R20. Built-in mods add their Build Points** (p. 151; Example 3, p. 156). Example 3 gives Realistic Features 4 "8 Build Points" and Chameleon Coating 2 "4", but its Build Point Value of 67 leaves those 12 out. *The app:* adds them.
 
