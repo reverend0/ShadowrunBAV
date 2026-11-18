@@ -24,6 +24,8 @@
 #   requires          passenger (not a drone), wheeled, medevac-drone,
 #                     small-drone (medium drones and smaller), valkyrie
 #   effect            what it changes, worked out in mods.rs
+#   book              the sourcebook it's from, when it isn't Double Clutch
+#                     (offered only when a design turns that book on)
 
 # Accessories (pp. 120–122).
 
@@ -1441,3 +1443,27 @@ availability_per_rating = 2
 many = true
 hardpoint = "standard"
 levels = [{ cost = 750 }, { cost = 4000 }]
+
+# Deadly Arts.
+
+# Mil-Spec Mayhem (p. 150).
+[[mod]]
+id = "mds"
+name = "MDS (Missile Defense System)"
+group = "electronics"
+slot_type = "electronics"
+slots = 2.0
+availability = "6(L)"
+cost = 15000
+book = "deadly-arts"
+
+# War Magic 101 (p. 166). The book offers 25 or 50 CF; one size, 50 CF (decided).
+[[mod]]
+id = "mobile-magic-lodge"
+name = "Mobile Magic Lodge"
+group = "seating"
+slot_type = "none"
+cf = 50.0
+availability = "9"
+cost = 80000
+book = "deadly-arts"

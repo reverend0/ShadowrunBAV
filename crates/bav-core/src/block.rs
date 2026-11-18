@@ -8,6 +8,7 @@ use serde::Serialize;
 use crate::calc::Report;
 use crate::catalog::{Catalog, Chassis, Kind};
 use crate::design::{Design, Layout, Weapon};
+use crate::milspec::{self, Outcome};
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct StatBlock {
@@ -65,7 +66,7 @@ pub fn build(design: &Design, report: &Report, catalog: &Catalog, chassis: &Chas
     });
 
     let mut lines = Vec::new();
-    let equipment = equipment_entries(design, catalog);
+    let equipment = equipment_entries(design, catalog, &report.milspec);
     if !equipment.is_empty() {
         let label = if gear { "Standard Equipment" } else { "Equipment" };
         lines.push(BlockLine { label: label.into(), entries: equipment, one_per_line: false });
@@ -89,12 +90,17 @@ pub fn build(design: &Design, report: &Report, catalog: &Catalog, chassis: &Chas
 /// The mods as a stat block lists them: in name order, in lowercase but for
 /// the first (and acronyms and names), with a rating after and a count or
 /// note in parentheses: "Realistic features 4, standard weapon mount (2)".
-fn equipment_entries(design: &Design, catalog: &Catalog) -> Vec<String> {
+/// Deadly Arts' mil-spec options are listed with them when it's on.
+fn equipment_entries(design: &Design, catalog: &Catalog, milspec: &Outcome) -> Vec<String> {
     let mut entries: Vec<String> = design
         .mods
         .iter()
         .filter_map(|inst| {
             let def = catalog.vehicle_mod(&inst.id)?;
+            // A mod from a book the design has turned off is left out.
+            if def.book.as_ref().is_some_and(|book| !design.books.contains(book)) {
+                return None;
+            }
             let mut entry = lowercase_words(&def.name);
             if def.rated() && def.effect.as_deref() != Some("gecko") {
                 entry = format!("{entry} {}", inst.rating);
@@ -112,9 +118,38 @@ fn equipment_entries(design: &Design, catalog: &Catalog) -> Vec<String> {
             Some(entry)
         })
         .collect();
+    if milspec.military {
+        entries.extend(milspec_entries(design, milspec));
+    }
     entries.sort_by_key(|e| e.to_lowercase());
     if let Some(first) = entries.first_mut() {
         *first = capitalize(first);
+    }
+    entries
+}
+
+/// Deadly Arts' mil-spec options as equipment: "mil-spec frame 6",
+/// "mil-spec hardpoint (Grade 3, pop-out turret, twin-linked)".
+fn milspec_entries(design: &Design, milspec: &Outcome) -> Vec<String> {
+    let ms = &design.milspec;
+    let mut entries = Vec::new();
+    if ms.airframe_plate {
+        entries.push("airframe ceramic plate".to_string());
+    }
+    if ms.heavy_plate != 0 {
+        entries.push(format!("heavy mil-spec plate {}", ms.heavy_plate.clamp(4, 6)));
+    }
+    if (1..=3).contains(&ms.comms) {
+        entries.push(format!("mil-spec comms {}", ["I", "II", "III"][(ms.comms - 1) as usize]));
+    }
+    if milspec.frame_body > 0 {
+        entries.push(format!("mil-spec frame {}", milspec.frame_body));
+    }
+    // `zip` pairs each hardpoint with its Grade, worked out in the same order.
+    for (hp, grade) in ms.hardpoints.iter().zip(&milspec.hardpoints) {
+        let mut parts = vec![format!("Grade {grade}")];
+        parts.extend(milspec::mounting(hp));
+        entries.push(format!("mil-spec hardpoint ({})", parts.join(", ")));
     }
     entries
 }
@@ -161,9 +196,18 @@ pub fn mount(id: &str) -> Option<(&'static str, &'static str)> {
     })
 }
 
+/// A mil-spec hardpoint's number from a weapon's mount ("milspec-2" → 2).
+pub fn milspec_mount(id: &str) -> Option<usize> {
+    // `strip_prefix` gives the rest of the text after the prefix, if it
+    // starts with it; `parse` then reads the number, `ok()` dropping the error.
+    id.strip_prefix("milspec-")?.parse().ok().filter(|n| *n > 0)
+}
+
 /// A weapon's line as ShadowrunEdit writes one, with the mount's
 /// ammunition and its +2 to every Attack Rating in range (p. 142):
 /// `Ares Alpha [Assault Rifles, DV 4P, SA/BF/FA, 250(c), 5/12/11/8/4, w/ smartgun system] (standard turret)`.
+/// On a mil-spec hardpoint (Deadly Arts) it keeps its own ammunition and
+/// Attack Ratings.
 pub fn weapon_line(w: &Weapon) -> String {
     let mut parts = Vec::new();
     let mut push = |text: &str| {
@@ -177,30 +221,49 @@ pub fn weapon_line(w: &Weapon) -> String {
     }
     push(&w.mode);
     let mount = mount(&w.mount);
-    if let Some((ammo, _)) = mount {
-        push(ammo);
-    }
+    let (place, bonus) = match (mount, milspec_mount(&w.mount)) {
+        (Some((ammo, place)), _) => {
+            push(ammo);
+            (Some(place.to_string()), 2)
+        }
+        (None, Some(n)) => {
+            push(&w.ammo);
+            (Some(format!("mil-spec hardpoint {n}")), 0)
+        }
+        (None, None) => {
+            push(&w.ammo);
+            (None, 0)
+        }
+    };
     let ratings: Vec<String> = (0..5)
         .map(|i| w.ar.get(i).copied().unwrap_or(0))
-        .map(|ar| if ar > 0 { (ar + 2).to_string() } else { "—".into() })
+        .map(|ar| if ar > 0 { (ar + bonus).to_string() } else { "—".into() })
         .collect();
     push(&ratings.join("/"));
     if !w.mods.trim().is_empty() {
         push(&format!("w/ {}", w.mods.trim()));
     }
     let name = if w.name.trim().is_empty() { "Unnamed weapon" } else { w.name.trim() };
-    match mount {
-        Some((_, place)) => format!("{name} [{}] ({place})", parts.join(", ")),
+    match place {
+        Some(place) => format!("{name} [{}] ({place})", parts.join(", ")),
         None => format!("{name} [{}]", parts.join(", ")),
     }
 }
 
-/// Weapons need a weapon mount, and a mount holds one weapon (p. 142).
-pub fn check_weapons(design: &Design, problems: &mut Vec<String>) {
+/// Weapons need a weapon mount, and a mount holds one weapon (p. 142). A
+/// mil-spec hardpoint (Deadly Arts) holds one, or 2 or 4 linked.
+pub fn check_weapons(design: &Design, milspec: &Outcome, problems: &mut Vec<String>) {
     for w in &design.weapons {
         let name = if w.name.trim().is_empty() { "A weapon" } else { w.name.trim() };
-        if mount(&w.mount).is_none() {
-            problems.push(format!("{name} needs a weapon mount: a vehicle's weapons are fitted in one (p. 142)."));
+        match milspec_mount(&w.mount) {
+            Some(n) if n > milspec.hardpoints.len() => {
+                problems.push(format!("{name} is on mil-spec hardpoint {n}, which the vehicle doesn't have."));
+            }
+            Some(_) => {}
+            None if mount(&w.mount).is_none() => {
+                problems.push(format!("{name} needs a weapon mount: a vehicle's weapons are fitted in one (p. 142)."));
+            }
+            None => {}
         }
     }
     for id in design.weapons.iter().map(|w| w.mount.as_str()).filter(|id| mount(id).is_some()) {
@@ -215,6 +278,15 @@ pub fn check_weapons(design: &Design, problems: &mut Vec<String>) {
             if !problems.contains(&problem) {
                 problems.push(problem);
             }
+        }
+    }
+    // `enumerate` counts from 0; hardpoints are numbered from 1.
+    for (i, hp) in design.milspec.hardpoints.iter().enumerate().take(milspec.hardpoints.len()) {
+        let n = i + 1;
+        let weapons = design.weapons.iter().filter(|w| milspec_mount(&w.mount) == Some(n)).count() as i32;
+        let holds = if [2, 4].contains(&hp.linked) { hp.linked } else { 1 };
+        if weapons > holds {
+            problems.push(format!("{weapons} weapons are on mil-spec hardpoint {n}, which holds {holds}."));
         }
     }
 }

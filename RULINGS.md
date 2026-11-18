@@ -6,6 +6,7 @@ The page numbers are *Double Clutch*'s. The book's wording isn't quoted; each ru
 
 - [Build Your Dream](#build-your-dream-pp-147157): designing a vehicle (R1–R11)
 - [Making It Yours](#making-it-yours-pp-120144): mods (R12–R20)
+- [Deadly Arts](#deadly-arts): its mil-spec options and mods (R21–R23)
 - [The examples, corrected](#the-examples-corrected): the three build examples' numbers next to the app's
 - [Not yet confirmed](#not-yet-confirmed): what the app assumes where the book is silent
 
@@ -55,6 +56,16 @@ Found another? [Open an issue](../../issues) with the page and what disagrees.
 
 **R20. Built-in mods add their Build Points** (p. 151; Example 3, p. 156). Example 3 gives Realistic Features 4 "8 Build Points" and Chameleon Coating 2 "4", but its Build Point Value of 67 leaves those 12 out. *The app:* adds them.
 
+## Deadly Arts
+
+Page numbers in this section are *Deadly Arts*'. Its options are used only when a design turns the book on.
+
+**R21. Design Points are Build Points** (pp. 150–152). Deadly Arts prices its mil-spec design options in Design Points and calls them an expansion of Double Clutch's design options. Double Clutch itself uses both names for one total: its overview (p. 149) builds a "Design Point Value", which p. 155 prices at 1,000¥ a point, and the rest of the chapter calls it the Build Point Value. *The app:* they're added to the Build Point Value.
+
+**R22. The Mobile Magic Lodge takes 50 CF** (p. 166). Its box offers 25 or 50 CF at one price, with a stray second Cost column. *The app:* one size, 50 CF, 80,000¥.
+
+**R23. Any mil-spec option makes it military** (p. 150). Building or repairing a military vehicle is +8 to the threshold, and the book doesn't say what makes a design military. *The app:* any of the mil-spec design options; the build test's threshold is 28.
+
 ## The examples, corrected
 
 What each example says, and what the app works out with the rulings above. The tests check the app's column.
@@ -91,4 +102,13 @@ Where the book is silent, the app assumes the following. Each is one place in th
 - Living space costs a month of its lifestyle per occupant, at the core rulebook's prices.
 - Increased Seating takes 1 CF of cargo a seat; its box's "or 0.5 slots" is the cargo space Increased Cargo Space would make.
 - Elemental hardening has no Availability (its box has none).
+- Deadly Arts: a mil-spec frame adds its rating to the Body on the stat line, as Increased Structural Integrity does, without adding mod slots or changing the speed modifier; its limit, half the Body, is the designed Body's.
+- Deadly Arts: a frame's offset applies to Double Clutch's milspec plate too, not only heavy mil-spec plate.
+- Deadly Arts: heavy mil-spec plate is a design option at ratings 4 to 6 only; ratings 1 to 3 stay Double Clutch's mod.
+- Deadly Arts: Double Clutch's ceramic and milspec plate count as specialty armor for its one-kind rule, only when Deadly Arts is on.
+- Deadly Arts: pop-out's extra 5 Build Points a Grade use the hardpoint's Grade after all its changes.
+- Deadly Arts: a primary weapon's hardpoint at Grade 0 still needs Body 5.
+- Deadly Arts: a weapon on a mil-spec hardpoint keeps its own ammunition and Attack Ratings (Double Clutch's +2 is for its weapon mounts).
+- Deadly Arts: the +8 for a military vehicle is on the build test, not the design test or installing mods.
+- Deadly Arts: airframe ceramic plate's bonus dice are half the designed Armor, rounded down, and it costs 2 a point of that Armor.
 - A large weapon mount shows 500(b) rounds even when it holds rockets or missiles, which the book counts by the vehicle's Body.

@@ -32,6 +32,7 @@ fn main() {
             ar: vec![3, 10, 9, 6, 2],
             mods: "smartgun system".into(),
             mount: "standard-weapon-mount".into(),
+            ..Weapon::default()
         }],
         // A second argument, "gm", lays it out for a gamemaster.
         layout: if std::env::args().nth(2).as_deref() == Some("gm") { Layout::Gamemaster } else { Layout::Gear },

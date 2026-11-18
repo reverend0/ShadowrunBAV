@@ -38,6 +38,13 @@ pub struct Context<'a> {
     pub universal_slots: i32,
     /// Whether built-in mods count against the slots (RULINGS.md R19).
     pub built_in_uses_slots: bool,
+    /// The sourcebooks the design turns on; other books' mods are left out.
+    pub books: &'a [String],
+    /// Deadly Arts' mil-spec frame: Body added, as Increased Structural
+    /// Integrity adds it, and levels of milspec plate whose Speed Interval
+    /// loss it offsets.
+    pub frame_body: i32,
+    pub plate_offset: i32,
 }
 
 impl Context<'_> {
@@ -139,6 +146,7 @@ pub fn apply(
     notes: &mut Vec<String>,
 ) -> (Vehicle, ModsReport) {
     let mut v = factory.clone();
+    v.body += ctx.frame_body;
     let mut report = ModsReport { universal_slots: ctx.universal_slots, ..ModsReport::default() };
 
     // The mods the catalog knows, each paired with its definition.
@@ -146,6 +154,13 @@ pub fn apply(
     let known: Vec<(&InstalledMod, &Mod)> = installed
         .iter()
         .filter_map(|inst| match catalog.vehicle_mod(&inst.id) {
+            // A mod from a sourcebook the design has turned off.
+            Some(def) if def.book.as_ref().is_some_and(|book| !ctx.books.contains(book)) => {
+                let book = def.book.as_deref().unwrap_or_default();
+                let name = catalog.book.iter().find(|b| b.id == book).map_or(book, |b| b.name.as_str());
+                problems.push(format!("{} is from {name}, which is off: left out. Turn it on under Books.", def.name));
+                None
+            }
             Some(def) => Some((inst, def)),
             None => {
                 problems.push(format!("Unknown mod “{}” left out.", inst.id));
@@ -509,7 +524,8 @@ impl Effects<'_, '_> {
                         .push("Standard Armor: an aircraft needs at least half its Top Speed to take off.".into());
                 }
             }
-            Some("milspec") => v.speed_interval -= 5 * r,
+            // A mil-spec frame offsets a level per 2 points (Deadly Arts).
+            Some("milspec") => v.speed_interval -= 5 * (r - ctx.plate_offset).max(0),
             Some("improved-handling" | "pilot-by-wire") => {
                 v.handling_on_road -= r;
                 v.handling_off_road -= r;

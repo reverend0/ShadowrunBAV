@@ -12,13 +12,14 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
 ## Scope
 
 - Designing from scratch ("Build Your Dream"), and mods on the design ("Making It Yours"): accessories, chassis, skin, powertrain, secondary propulsion, electronics, hardpoints, and hardpoint devices.
+- Other books, each turned on per design: Deadly Arts' mil-spec design options and its two mods (see "Other books").
 - Not covered: the book's stock vehicles (their stats are the book's data; one could be typed in later), trailers and sidecars (vehicles of their own), the rigger cyberware and autosofts (not vehicle mods), and redlining (a driving rule).
 - Open source under the MIT License (decided, 2026-11-15).
 
 ## Stack
 
 - Tauri 2 with a Rust core, the same layout as ShadowrunEdit:
-  - `crates/bav-core/`: the rules, with no Tauri dependency, so `cargo test` is quick. `catalog.rs` reads the tables, `design.rs` is a design (the player's choices), `calc.rs` works it out, `mods.rs` works out the mods on it, `block.rs` lays out the stat block, `files.rs` reads and writes design files, `pdf.rs` writes the vehicle sheet.
+  - `crates/bav-core/`: the rules, with no Tauri dependency, so `cargo test` is quick. `catalog.rs` reads the tables, `design.rs` is a design (the player's choices), `calc.rs` works it out, `mods.rs` works out the mods on it, `milspec.rs` Deadly Arts' mil-spec options, `block.rs` lays out the stat block, `files.rs` reads and writes design files, `pdf.rs` writes the vehicle sheet.
   - `data/design.toml` and `data/mods.toml`: the book's tables, built into the program (`include_str!`).
   - `src-tauri/`: the window, exposing five commands (`catalog`, `evaluate_design`, `open_design`, `save_design`, `export_pdf`), and the updater.
   - `src/`: the UI in strict TypeScript with no framework.
@@ -26,7 +27,7 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
 
 ## The window
 
-- Left: the design. Name; Base (chassis grouped by ground, water, air, drones; powertrain grouped by medium; console, and the stat block's layout), each option's label carrying its numbers; Design options, a level per functional improvement (a negative level is the improvement in reverse); Design modifications (engine type and Heavy Duty/Lightweight as radio buttons, the rest checkboxes); Quality factors (production and Security/Military as radio buttons; Environmental Adaptation asks for its environment and Specialized Function for what it's for); Mods (whether built-in mods use mod slots; Add picks one from a list grouped as the chapter is; each has its rating, a count for those installed more than once, Built in, a note, and ×); Weapons (each typed in: name, type, DV, firing modes, five Attack Ratings, its own mods, and the weapon mount it's in, from the vehicle's; Add a weapon puts a new one in the first mount); Notes.
+- Left: the design. Name; Books (a box per book beyond Double Clutch); Base (chassis grouped by ground, water, air, drones; powertrain grouped by medium; console, and the stat block's layout), each option's label carrying its numbers; Design options, a level per functional improvement (a negative level is the improvement in reverse); Design modifications (engine type and Heavy Duty/Lightweight as radio buttons, the rest checkboxes); Quality factors (production and Security/Military as radio buttons; Environmental Adaptation asks for its environment and Specialized Function for what it's for); Mil-spec, when Deadly Arts is on (see "Other books"); Mods (whether built-in mods use mod slots; Add picks one from a list grouped as the chapter is; each has its rating, a count for those installed more than once, Built in, a note, and ×); Weapons (each typed in: name, type, DV, firing modes, five Attack Ratings, its own mods, and the weapon mount it's in, from the vehicle's; Add a weapon puts a new one in the first mount); Notes.
 - Right, recalculated on every change: the stat block (see "The stat block"), with Copy, and under it, when there are mods, the stat line as designed; problems in red; Size Class, cargo, speed modifier, and mod slots; notes on what comes with the choices; the speed calculation step by step; the Build Points line by line with the multipliers; and price, Availability, the design test, the parts' price, and the build test; then the mods: each with its slots (and CF), Availability, price, and its do-it-yourself price and install test (or its Build Points, built in), then the slots used of each category's, the hardpoints, the skin's form, cargo taken, a secondary propulsion's stats, and the prices.
 - A design that breaks a rule still calculates; the problems say what to fix.
 - New, Open, Save, Save As, Export PDF (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+P). Unsaved changes show as a dot after the file name, and New or Open asks before discarding them.
@@ -94,13 +95,28 @@ The vehicle as ShadowrunEdit's `sr6-vehicle` block lays it out (`block.rs`), so 
 - Availability: the highest of the vehicle's and its mods' (p. 155), I outranking L. The stat line's Cost is the vehicle's price plus the mods installed afterward.
 - Tires, active multi-terrain suspension, and a few others note what they do rather than change the stat line (their bonuses depend on the road).
 
+## Other books
+
+Rules from books beyond *Double Clutch* are turned on per design, under Books, and saved with it (`books = ["deadly-arts"]`; a file without it uses Double Clutch alone). Off, a book's options are hidden; any already in the design stay in the file but are left out of the calculations and flagged, so turning it back on brings them back.
+
+Deadly Arts, "Mil-Spec Mayhem" (pp. 150–152), in `milspec.rs`, its Design Points counted as Build Points (decided, RULINGS.md R21):
+
+- Airframe ceramic plate: 2 Build Points a point of the designed Armor; noted as half the Armor in bonus dice.
+- Heavy mil-spec plate, rating 4 to 6: 5 a rating, and Speed Interval −5 a rating.
+- Mil-spec comms I, II, III: 5, 20, 30.
+- Mil-spec frame, 1 to 12, at most half the designed Body: 10 + 5 a rating. It adds its rating to Body, as Increased Structural Integrity does (no mod slots), and every 2 points offset a level of mil-spec plate's Speed Interval loss, heavy or Double Clutch's. It doesn't go with Increased Structural Integrity.
+- Only one kind of specialty armor: airframe ceramic plate, heavy mil-spec plate, and Double Clutch's ceramic and milspec plate.
+- Mil-spec hardpoints: each sized for its weapon. The Grade is the weapon's Size, −2 inline or open, +1 pop-out, +1 twin-linked or +2 quad-linked (never below 0); it costs 5 a Grade, another 5 a Grade for pop-out, and +3 twin-linked or +5 quad-linked; and it needs Body 5 + 5 × Grade (a primary weapon's, a Grade less). Pop-out isn't for inline mounts. A weapon on one keeps its own ammunition and Attack Ratings, and a hardpoint holds one weapon, or its 2 or 4 linked. The stat block lists them as equipment: `mil-spec hardpoint (Grade 3, pop-out turret)`.
+- Any of these makes it a military vehicle: the build test's threshold is 28 (decided, R23).
+- Its mods: MDS (Missile Defense System), 2 electronics slots, and Mobile Magic Lodge, 50 CF (decided, R22).
+
 ## Rules decisions
 
 Every place the book disagrees with itself or with its examples, what the app does instead, the examples corrected, and the assumptions not yet confirmed are in [RULINGS.md](RULINGS.md), numbered R1, R2, and so on. A new ruling goes there, with a test, and "(decided)" in this file points to one.
 
 ## Testing
 
-- `cargo test -p bav-core`: a test per rule, named after it, the book's three examples (as decided above, Examples 1 and 3 again with their mods), every chassis × powertrain × console combination, every mod on a car and a drone, and design files saved and reopened.
+- `cargo test -p bav-core`: a test per rule, named after it, the book's three examples (as decided above, Examples 1 and 3 again with their mods), every chassis × powertrain × console combination, every mod on a car and a drone, Deadly Arts' options and turning it on and off (`milspec_tests.rs`), and design files saved and reopened.
 - `npm test`: the UI's text helpers and the update checks.
 - Test data is made up; the book's examples are restated as numbers only.
 
@@ -112,4 +128,5 @@ Every place the book disagrees with itself or with its examples, what the app do
 | Trailers and sidecars | Their own small profiles (p. 127) and the towing rules |
 | Operation time | The base 6 hours, Improved Economy/Capacity's +33% a rank, and what drains it |
 | Export to ShadowrunEdit | Copy gives the stat block to paste; a `.md` with an `sr6-vehicle` block would open as one, ready to edit |
+| More books | Explosive Decompression's Spaceworthy drone mod (Availability 4(L), twice the drone's price); Smooth Operations' drone-mounted tag sprayer (one mod slot installed); Sixth World Companion's drone packages, bundles of Double Clutch's mods |
 | Large mounts with rockets or missiles | A large mount holds as many as the vehicle's Body (p. 142); today every large mount shows 500(b) |

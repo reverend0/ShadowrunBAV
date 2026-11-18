@@ -8,6 +8,8 @@
 //! - `block`: the stat block, laid out as in ShadowrunEdit.
 //! - `files`: reading and writing design files.
 //! - `mods`: vehicle mods ("Making It Yours"), on top of a design.
+//! - `milspec`: Deadly Arts' mil-spec design options, when a design turns
+//!   that book on.
 //! - `pdf`: a design as a PDF vehicle sheet, laid out like the book's entries.
 
 pub mod block;
@@ -15,9 +17,12 @@ pub mod calc;
 pub mod catalog;
 pub mod design;
 pub mod files;
+pub mod milspec;
 pub mod mods;
 pub mod pdf;
 
+#[cfg(test)]
+mod milspec_tests;
 #[cfg(test)]
 mod mod_tests;
 #[cfg(test)]

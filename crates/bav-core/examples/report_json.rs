@@ -31,6 +31,7 @@ fn main() {
             ar: vec![3, 10, 9, 6, 2],
             mods: "smartgun system".into(),
             mount: "standard-weapon-mount".into(),
+            ..Weapon::default()
         }],
         ..Design::default()
     };

@@ -63,6 +63,14 @@ export interface VehicleMod {
   rating_min: number | null;
   rating_max: number | null;
   many: boolean;
+  /** The sourcebook it's from, when it isn't Double Clutch. */
+  book: string | null;
+}
+
+/** A sourcebook beyond Double Clutch that a design can turn on. */
+export interface Book {
+  id: string;
+  name: string;
 }
 
 export interface Catalog {
@@ -74,6 +82,7 @@ export interface Catalog {
   modification: Modification[];
   quality: Quality[];
   mods: VehicleMod[];
+  book: Book[];
 }
 
 export interface Improvements {
@@ -107,6 +116,32 @@ export interface Design {
   layout: "gear" | "gamemaster";
   /** Whether built-in mods use the vehicle's mod slots (RULINGS.md R19). */
   built_in_uses_slots: boolean;
+  /** Sourcebooks turned on for this design ("deadly-arts"). */
+  books: string[];
+  milspec: MilSpec;
+}
+
+/** Deadly Arts' mil-spec design options (pp. 150–152). */
+export interface MilSpec {
+  airframe_plate: boolean;
+  /** 4 to 6, or 0 for none. */
+  heavy_plate: number;
+  /** I, II, III as 1 to 3, or 0 for none. */
+  comms: number;
+  /** 1 to 12, or 0 for none. */
+  frame: number;
+  hardpoints: MilspecHardpoint[];
+}
+
+export interface MilspecHardpoint {
+  /** The weapon's Size. */
+  size: number;
+  mount: "turreted" | "inline" | "open";
+  pop_out: boolean;
+  /** 1, 2 (twin-linked), or 4 (quad-linked). */
+  linked: number;
+  primary: boolean;
+  note: string;
 }
 
 /** A weapon, typed in; its mount sets its ammunition and adds 2 to its Attack Ratings. */
@@ -118,8 +153,10 @@ export interface Weapon {
   /** Five Attack Ratings; 0 is an em dash. */
   ar: number[];
   mods: string;
-  /** The weapon mount's mod id. */
+  /** The weapon mount's mod id, or a mil-spec hardpoint's ("milspec-1"). */
   mount: string;
+  /** Its ammunition, for a mil-spec hardpoint, which doesn't set it. */
+  ammo: string;
 }
 
 export interface InstalledMod {
@@ -161,7 +198,7 @@ export interface Report {
   cost: number;
   parts_cost: number;
   availability: string;
-  design_test: { day: number; week: number; month: number };
+  design_test: { day: number; week: number; month: number; build_threshold: number };
   speed_steps: string[];
   problems: string[];
   notes: string[];
@@ -169,6 +206,8 @@ export interface Report {
   factory_stat_line: StatLine;
   total_cost: number;
   mods: ModsReport;
+  /** Deadly Arts' mil-spec options, when it's on. */
+  milspec: { hardpoints: number[]; military: boolean };
   block: StatBlock;
 }
 
@@ -236,5 +275,7 @@ export function newDesign(): Design {
     weapons: [],
     layout: "gear",
     built_in_uses_slots: true,
+    books: [],
+    milspec: { airframe_plate: false, heavy_plate: 0, comms: 0, frame: 0, hardpoints: [] },
   };
 }

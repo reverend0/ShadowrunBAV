@@ -10,6 +10,7 @@ use serde::Serialize;
 use crate::block::{self, StatBlock};
 use crate::catalog::{Catalog, DroneSize, Kind};
 use crate::design::Design;
+use crate::milspec::{self, Outcome};
 use crate::mods::{self, ModsReport};
 
 /// Everything the UI shows for a design.
@@ -46,6 +47,8 @@ pub struct Report {
     /// The vehicle's price plus the mods installed afterward, at a shop.
     pub total_cost: i64,
     pub mods: ModsReport,
+    /// Deadly Arts' mil-spec options, when it's on.
+    pub milspec: Outcome,
     /// The stat block, laid out as in ShadowrunEdit.
     pub block: StatBlock,
 }
@@ -98,12 +101,15 @@ pub struct Factor {
 
 /// The Engineering + Logic Extended test to design the vehicle (p. 155):
 /// its threshold with a 1-day, 1-week, or 1-month interval. Building it is
-/// always threshold 20 with a 1-week interval, in a facility.
+/// threshold 20 with a 1-week interval, in a facility.
 #[derive(Debug, Clone, Serialize)]
 pub struct DesignTest {
     pub day: i32,
     pub week: i32,
     pub month: i32,
+    /// The build test's threshold: 20, or 28 for a military vehicle
+    /// (Deadly Arts, p. 150).
+    pub build_threshold: i32,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -256,6 +262,18 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         );
     }
 
+    // Deadly Arts' mil-spec design options, when the design turns it on.
+    let milspec = if design.uses_book(milspec::BOOK) {
+        milspec::work_out(&design.milspec, body, armor, &mut problems, &mut notes)
+    } else {
+        if !design.milspec.is_empty() {
+            problems.push(
+                "Deadly Arts is off, so its mil-spec options are left out: turn it on under Books to use them.".into(),
+            );
+        }
+        Outcome::default()
+    };
+
     // Speed (p. 154). The speed modifier is Body ÷ 2 + Armor; Integrated
     // Armor or Cargo Hauler count half the Armor (they don't stack).
     let mut speed_steps = Vec::new();
@@ -270,6 +288,11 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
 
     let mut acceleration = powertrain.acceleration + 5 * imp.acceleration;
     let mut speed_interval = powertrain.speed_interval + 5 * imp.speed_interval;
+    if milspec.speed_interval_loss > 0 {
+        speed_interval -= milspec.speed_interval_loss;
+        speed_steps
+            .push(format!("Heavy mil-spec plate: Speed Interval − {} = {speed_interval}", milspec.speed_interval_loss));
+    }
     if speed_interval < 1 {
         problems.push(format!("Speed Interval is {speed_interval}: too little for this powertrain. It's shown as 1."));
         speed_interval = 1;
@@ -411,9 +434,35 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         is_aircraft,
         universal_slots: 2 * imp.easily_modified.max(0),
         built_in_uses_slots: design.built_in_uses_slots,
+        books: &design.books,
+        frame_body: milspec.frame_body,
+        plate_offset: milspec.plate_offset,
     };
     let (modded, mods_report) = mods::apply(&design.mods, catalog, &context, &factory, &mut problems, &mut notes);
-    block::check_weapons(design, &mut problems);
+    block::check_weapons(design, &milspec, &mut problems);
+    // Deadly Arts' rules between its options and Double Clutch's mods.
+    let has_mod = |id: &str| mods_report.lines.iter().any(|line| line.id == id);
+    if milspec.frame_body > 0 && has_mod("structural-integrity") {
+        problems.push("A mil-spec frame and Increased Structural Integrity don't go together: choose one.".into());
+    }
+    // Only one kind of specialty armor (p. 151), counting Double Clutch's
+    // plates once Deadly Arts is on.
+    if design.uses_book(milspec::BOOK) {
+        let ms = &design.milspec;
+        let kinds: Vec<&str> = [
+            (ms.airframe_plate, "airframe ceramic plate"),
+            (ms.heavy_plate != 0, "heavy mil-spec plate"),
+            (has_mod("ceramic-plate"), "ceramic plate"),
+            (has_mod("milspec-plate"), "milspec plate"),
+        ]
+        .iter()
+        .filter(|(on, _)| *on)
+        .map(|(_, name)| *name)
+        .collect();
+        if kinds.len() > 1 {
+            problems.push(format!("Only one kind of specialty armor (Deadly Arts, p. 151): {}.", kinds.join(", ")));
+        }
+    }
 
     // Build Points.
     let mut build_points = vec![
@@ -440,6 +489,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
             None => problems.push(format!("Unknown design modification “{id}” left out.")),
         }
     }
+    build_points.extend(milspec.lines.iter().cloned());
     // A mod built into the design costs 2 Build Points a slot (p. 151).
     for line in mods_report.lines.iter().filter(|line| line.built_in) {
         build_points.push(Line { label: format!("Built in: {}", line.label), points: line.build_points });
@@ -569,13 +619,19 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
 
     // The design test's threshold rounds up (the book's examples do).
     let day = ceil_div(build_point_value.max(0), 5);
-    let design_test = DesignTest { day, week: ceil_div(day, 2), month: ceil_div(day, 4) };
+    let build_threshold = if milspec.military { 28 } else { 20 };
+    if milspec.military {
+        notes.push("Military vehicle: building and repairing it are +8 to the threshold (Deadly Arts, p. 150).".into());
+    }
+    let design_test = DesignTest { day, week: ceil_div(day, 2), month: ceil_div(day, 4), build_threshold };
 
     // The stat line is the vehicle with all its mods, at its full price;
     // the factory line is the design alone.
     let total_cost = cost + mods_report.aftermarket_cost;
     let stat_line = stat_line_of(&modded, is_drone, &availability, total_cost);
-    let factory_stat_line = stat_line_of(&factory, is_drone, &vehicle_availability, cost - mods_report.built_in_cost);
+    // As designed, the mil-spec frame's Body included.
+    let designed = mods::Vehicle { body: body + milspec.frame_body, ..factory.clone() };
+    let factory_stat_line = stat_line_of(&designed, is_drone, &vehicle_availability, cost - mods_report.built_in_cost);
     let m = &modded;
 
     let mut report = Report {
@@ -620,6 +676,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         factory_stat_line,
         total_cost,
         mods: mods_report,
+        milspec,
         block: StatBlock::default(),
     };
     // The stat block reads the finished report, so it comes last.

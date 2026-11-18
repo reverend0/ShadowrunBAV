@@ -25,6 +25,16 @@ pub struct Catalog {
     /// The vehicle mods, from `data/mods.toml`.
     #[serde(default)]
     pub mods: Vec<Mod>,
+    /// Sourcebooks beyond Double Clutch that a design can turn on.
+    #[serde(default)]
+    pub book: Vec<Book>,
+}
+
+/// A sourcebook with vehicle rules of its own (Deadly Arts).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Book {
+    pub id: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -213,6 +223,9 @@ pub struct Mod {
     pub requires: Option<String>,
     pub effect: Option<String>,
     pub secondary: Option<Secondary>,
+    /// The sourcebook it's from, when it isn't Double Clutch ("deadly-arts");
+    /// offered only when the design turns that book on.
+    pub book: Option<String>,
 }
 
 impl Mod {

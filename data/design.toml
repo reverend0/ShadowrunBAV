@@ -713,3 +713,10 @@ legality = "I"
 id = "superstructure"
 name = "Superstructure"
 multiplier = 3.0
+
+# Sourcebooks beyond Double Clutch that a design can turn on. Deadly Arts'
+# mil-spec design options (pp. 150–152) are worked out in
+# `crates/bav-core/src/milspec.rs`; its mods are in `data/mods.toml`.
+[[book]]
+id = "deadly-arts"
+name = "Deadly Arts"

@@ -38,6 +38,79 @@ pub struct Design {
     /// (RULINGS.md R19). The book doesn't say; on by default, and a file
     /// saved before the choice existed gets the default.
     pub built_in_uses_slots: bool,
+    /// Sourcebooks beyond Double Clutch turned on for this design, by id
+    /// ("deadly-arts"). Their options are offered only when they're on.
+    pub books: Vec<String>,
+    /// Deadly Arts' mil-spec design options (pp. 150–152).
+    pub milspec: MilSpec,
+}
+
+/// Deadly Arts' mil-spec design options (pp. 150–152), an expansion of
+/// Double Clutch's design options. Worked out in `milspec.rs`.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MilSpec {
+    pub airframe_plate: bool,
+    /// Heavy mil-spec plate's rating: 4 to 6, or 0 for none.
+    pub heavy_plate: i32,
+    /// Mil-spec comms I, II, or III (1 to 3), or 0 for none.
+    pub comms: i32,
+    /// Mil-spec frame's rating, 1 to 12, or 0 for none.
+    pub frame: i32,
+    pub hardpoints: Vec<MilspecHardpoint>,
+}
+
+impl MilSpec {
+    /// Whether the design uses any of them.
+    pub fn is_empty(&self) -> bool {
+        // Comparing with the default compares every field (derived `PartialEq`).
+        *self == MilSpec::default()
+    }
+}
+
+/// A mil-spec hardpoint (MHP), sized for the weapon it carries: its Grade is
+/// the weapon's Size, changed by how it's mounted (p. 151).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MilspecHardpoint {
+    /// The weapon's Size.
+    pub size: i32,
+    pub mount: MountKind,
+    /// Hidden inside the body until it's needed (turreted or open only).
+    pub pop_out: bool,
+    /// 1, or 2 (twin-linked) or 4 (quad-linked) identical weapons.
+    pub linked: i32,
+    /// A dedicated primary weapon, built in at construction: its minimum
+    /// Body is a Grade smaller's.
+    pub primary: bool,
+    /// Where it is, or what for ("bow turret").
+    pub note: String,
+}
+
+impl Default for MilspecHardpoint {
+    fn default() -> Self {
+        MilspecHardpoint {
+            size: 1,
+            mount: MountKind::Turreted,
+            pop_out: false,
+            linked: 1,
+            primary: false,
+            note: String::new(),
+        }
+    }
+}
+
+/// How a weapon sits on a mil-spec hardpoint (p. 151).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MountKind {
+    /// The baseline, a full turret.
+    #[default]
+    Turreted,
+    /// Fixed, firing straight ahead: Grade −2.
+    Inline,
+    /// Outside the armor: Grade −2.
+    Open,
 }
 
 /// A stat block's layout, ShadowrunEdit's two modes: a gear book's (Avail
@@ -68,8 +141,12 @@ pub struct Weapon {
     pub ar: Vec<i32>,
     /// Its own modifications ("smartgun system"), as written.
     pub mods: String,
-    /// The weapon mount's mod id ("standard-turreted-weapon-mount").
+    /// The weapon mount's mod id ("standard-turreted-weapon-mount"), or a
+    /// mil-spec hardpoint's number ("milspec-1").
     pub mount: String,
+    /// Its ammunition ("200(br)"), for a mount that doesn't set it: a
+    /// mil-spec hardpoint carries the weapon's own magazine.
+    pub ammo: String,
 }
 
 impl Default for Weapon {
@@ -82,6 +159,7 @@ impl Default for Weapon {
             ar: vec![0; 5],
             mods: String::new(),
             mount: String::new(),
+            ammo: String::new(),
         }
     }
 }
@@ -128,6 +206,8 @@ impl Default for Design {
             weapons: Vec::new(),
             layout: Layout::Gear,
             built_in_uses_slots: true,
+            books: Vec::new(),
+            milspec: MilSpec::default(),
         }
     }
 }
@@ -205,5 +285,10 @@ impl Design {
 
     pub fn has_quality(&self, id: &str) -> bool {
         self.qualities.iter().any(|q| q == id)
+    }
+
+    /// Whether a sourcebook is turned on for this design.
+    pub fn uses_book(&self, id: &str) -> bool {
+        self.books.iter().any(|b| b == id)
     }
 }

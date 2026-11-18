@@ -169,8 +169,8 @@ fn design_lines(r: &Report) -> Vec<String> {
     }
     lines.push(format!(
         "Design it: Engineering + Logic ({}, 1 day), ({}, 1 week), or ({}, 1 month) Extended test. \
-         Build it: Engineering + Logic (20, 1 week) Extended test, in a facility.",
-        r.design_test.day, r.design_test.week, r.design_test.month
+         Build it: Engineering + Logic ({}, 1 week) Extended test, in a facility.",
+        r.design_test.day, r.design_test.week, r.design_test.month, r.design_test.build_threshold
     ));
     lines.extend(r.notes.iter().cloned());
     lines

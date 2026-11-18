@@ -13,6 +13,7 @@ import {
   type Design,
   type Improvements,
   type InstalledMod,
+  type MilspecHardpoint,
   newDesign,
   type Report,
   type Weapon,
@@ -306,13 +307,169 @@ function renderForm(): void {
 
   formEl.replaceChildren(
     el("label", { class: "field name" }, el("span", {}, "Name"), name),
+    booksFieldset(),
     base,
     options,
     modifications,
     quality,
+    ...(design.books.includes(DEADLY_ARTS) ? [milspecFieldset()] : []),
     modsFieldset(),
     weaponsFieldset(),
     el("fieldset", {}, el("legend", {}, "Notes"), notes),
+  );
+}
+
+// Sourcebooks beyond Double Clutch, turned on per design.
+
+const DEADLY_ARTS = "deadly-arts";
+
+function booksFieldset(): HTMLElement {
+  return el(
+    "fieldset",
+    {},
+    el("legend", {}, "Books"),
+    el("p", { class: "hint" }, "Double Clutch, plus the rules of any book turned on here, saved with the design."),
+    el(
+      "div",
+      { class: "checks" },
+      ...catalog.book.map((book) =>
+        checkbox(book.name, design.books.includes(book.id), (on) => {
+          design.books = on ? [...design.books, book.id] : design.books.filter((b) => b !== book.id);
+          changed();
+        }),
+      ),
+    ),
+  );
+}
+
+// Deadly Arts' mil-spec design options (pp. 150–152).
+
+/** Each mil-spec hardpoint's Grade, from the last report (Rust works them out). */
+let lastGrades: number[] = [];
+
+/** Replaces one mil-spec hardpoint with a changed copy, and recalculates. */
+function updateHardpoint(index: number, change: Partial<MilspecHardpoint>): void {
+  const hardpoints = design.milspec.hardpoints.map((h, i) => (i === index ? { ...h, ...change } : h));
+  design.milspec = { ...design.milspec, hardpoints };
+  changed(false);
+}
+
+/** A select of fixed choices that commits on change. */
+function plainSelect(value: string, title: string, options: [string, string][], onChange: (v: string) => void) {
+  const box = el("select", { title });
+  for (const [v, label] of options) box.append(el("option", { value: v }, label));
+  box.value = value;
+  box.addEventListener("change", () => onChange(box.value));
+  return box;
+}
+
+function hardpointRow(hp: MilspecHardpoint, index: number): HTMLElement {
+  const remove = el("button", { type: "button", title: "Remove this hardpoint", class: "remove" }, "×");
+  remove.addEventListener("click", () => {
+    design.milspec = { ...design.milspec, hardpoints: design.milspec.hardpoints.filter((_, i) => i !== index) };
+    // A weapon on it comes off; those on later hardpoints move up a number.
+    design.weapons = design.weapons.map((w) => {
+      if (!w.mount.startsWith("milspec-")) return w;
+      const n = Number(w.mount.slice("milspec-".length));
+      if (n <= index) return w;
+      return { ...w, mount: n === index + 1 ? "" : `milspec-${n - 1}` };
+    });
+    changed();
+  });
+  const grade = lastGrades[index];
+  return el(
+    "div",
+    { class: "mod-row" },
+    el("span", { class: "mod-name" }, `Hardpoint ${index + 1}${grade == null ? "" : `: Grade ${grade}`}`),
+    el(
+      "label",
+      { class: "small" },
+      "Weapon Size ",
+      numberBox(hp.size, 0, 20, "The weapon's Size", (size) => updateHardpoint(index, { size })),
+    ),
+    plainSelect(
+      hp.mount,
+      "How the weapon is mounted",
+      [
+        ["turreted", "Turret"],
+        ["inline", "Inline (−2)"],
+        ["open", "Open (−2)"],
+      ],
+      (v) => updateHardpoint(index, { mount: v as MilspecHardpoint["mount"] }),
+    ),
+    plainSelect(
+      String(hp.linked),
+      "Identical weapons linked in it",
+      [
+        ["1", "One weapon"],
+        ["2", "Twin-linked (+1)"],
+        ["4", "Quad-linked (+2)"],
+      ],
+      (v) => updateHardpoint(index, { linked: Number(v) }),
+    ),
+    checkbox("Pop-out (+1)", hp.pop_out, (pop_out) => updateHardpoint(index, { pop_out }), "Hidden until needed"),
+    checkbox(
+      "Primary",
+      hp.primary,
+      (primary) => updateHardpoint(index, { primary }),
+      "A dedicated primary weapon, built in at construction: its minimum Body is a Grade smaller's",
+    ),
+    textBox(hp.note, "Note", (note) => updateHardpoint(index, { note }), "mod-note"),
+    remove,
+  );
+}
+
+function milspecFieldset(): HTMLElement {
+  const ms = design.milspec;
+  const set = (change: Partial<typeof ms>) => {
+    design.milspec = { ...design.milspec, ...change };
+    changed();
+  };
+  const add = el("button", { type: "button" }, "Add a mil-spec hardpoint");
+  add.addEventListener("click", () =>
+    set({
+      hardpoints: [...ms.hardpoints, { size: 1, mount: "turreted", pop_out: false, linked: 1, primary: false, note: "" }],
+    }),
+  );
+  return el(
+    "fieldset",
+    {},
+    el("legend", {}, "Mil-spec (Deadly Arts)"),
+    el(
+      "p",
+      { class: "hint" },
+      "Design options from Deadly Arts, pp. 150–152, in Build Points. Any of them makes it a military vehicle: +8 to build it. A hardpoint's Grade is its weapon's Size, changed by its mounting.",
+    ),
+    el(
+      "div",
+      { class: "checks" },
+      checkbox("Airframe ceramic plate (2 BP a point of Armor)", ms.airframe_plate, (airframe_plate) => set({ airframe_plate })),
+    ),
+    select(
+      "Heavy plate",
+      String(ms.heavy_plate),
+      [{ value: "0", label: "None" }, ...[4, 5, 6].map((r) => ({ value: String(r), label: `Rating ${r} (+${5 * r} BP)` }))],
+      (v) => set({ heavy_plate: Number(v) }),
+    ),
+    select(
+      "Comms",
+      String(ms.comms),
+      [
+        { value: "0", label: "None" },
+        { value: "1", label: "Mil-spec comms I (+5 BP)" },
+        { value: "2", label: "Mil-spec comms II (+20 BP)" },
+        { value: "3", label: "Mil-spec comms III (+30 BP)" },
+      ],
+      (v) => set({ comms: Number(v) }),
+    ),
+    el(
+      "label",
+      { class: "field", title: "Body + its rating, up to half the Body; 10 BP + 5 a rating" },
+      el("span", {}, "Frame"),
+      numberBox(ms.frame, 0, 12, "Mil-spec frame rating (0 for none)", (frame) => set({ frame: Math.max(0, frame) })),
+    ),
+    ...ms.hardpoints.map(hardpointRow),
+    add,
   );
 }
 
@@ -394,9 +551,9 @@ function modRow(installed: InstalledMod, index: number): HTMLElement {
 // Weapons, typed in as ShadowrunEdit's weapon rows are, each in a mount.
 
 /** Replaces one weapon with a changed copy, and recalculates. */
-function updateWeapon(index: number, change: Partial<Weapon>): void {
+function updateWeapon(index: number, change: Partial<Weapon>, redraw = false): void {
   design.weapons = design.weapons.map((w, i) => (i === index ? { ...w, ...change } : w));
-  changed(false);
+  changed(redraw);
 }
 
 /** A text box that commits on change. */
@@ -412,18 +569,34 @@ function weaponRow(w: Weapon, index: number): HTMLElement {
   // this weapon is in even if it's since been removed.
   const mountIds = catalog.mods.filter((m) => m.id.endsWith("weapon-mount")).map((m) => m.id);
   const installed = new Set(design.mods.map((m) => m.id));
-  const choices = mountIds.filter((id) => installed.has(id) || id === w.mount);
+  const choices = mountIds
+    .filter((id) => installed.has(id) || id === w.mount)
+    .map((id) => ({ value: id, label: catalog.mods.find((m) => m.id === id)?.name ?? id }));
+  // Deadly Arts' mil-spec hardpoints, numbered from 1.
+  if (design.books.includes(DEADLY_ARTS)) {
+    design.milspec.hardpoints.forEach((_, i) => {
+      const grade = lastGrades[i];
+      choices.push({
+        value: `milspec-${i + 1}`,
+        label: `Mil-spec hardpoint ${i + 1}${grade == null ? "" : ` (Grade ${grade})`}`,
+      });
+    });
+  }
+  // A mil-spec hardpoint keeps the weapon's own ammunition and Attack Ratings.
+  const onMilspec = w.mount.startsWith("milspec-");
   const mount = select(
     "Mount",
     w.mount,
-    [
-      { value: "", label: choices.length ? "Choose a mount…" : "Add a weapon mount in Mods first" },
-      ...choices.map((id) => ({ value: id, label: catalog.mods.find((m) => m.id === id)?.name ?? id })),
-    ],
-    (v) => updateWeapon(index, { mount: v }),
+    [{ value: "", label: choices.length ? "Choose a mount…" : "Add a weapon mount in Mods first" }, ...choices],
+    (v) => updateWeapon(index, { mount: v }, true),
   );
 
-  const ratings = el("span", { class: "ratings", title: "Attack Ratings before the mount's +2; 0 or blank for none" });
+  const ratings = el("span", {
+    class: "ratings",
+    title: onMilspec
+      ? "Attack Ratings as the weapon has them; 0 or blank for none"
+      : "Attack Ratings before the mount's +2; 0 or blank for none",
+  });
   for (const [i, label] of ["Close", "Near", "Medium", "Far", "Extreme"].entries()) {
     const box = numberBox(w.ar[i] ?? 0, 0, 99, `${label} Attack Rating (0 for none)`, (n) => {
       const ar = [0, 1, 2, 3, 4].map((j) => (j === i ? Math.max(0, n) : (w.ar[j] ?? 0)));
@@ -453,6 +626,7 @@ function weaponRow(w: Weapon, index: number): HTMLElement {
       textBox(w.weapon_type, "Type (Assault Rifles)", (weapon_type) => updateWeapon(index, { weapon_type })),
       textBox(w.dv, "DV (4P)", (dv) => updateWeapon(index, { dv }), "short"),
       textBox(w.mode, "Modes (SA/BF/FA)", (mode) => updateWeapon(index, { mode }), "short"),
+      ...(onMilspec ? [textBox(w.ammo, "Ammo (200(br))", (ammo) => updateWeapon(index, { ammo }), "short")] : []),
     ),
     el("label", { class: "field" }, el("span", {}, "Attack Ratings"), ratings),
     textBox(w.mods, "Its mods (smartgun system)", (mods) => updateWeapon(index, { mods }), "weapon-mods"),
@@ -467,7 +641,7 @@ function weaponsFieldset(): HTMLElement {
     const firstMount = design.mods.find((m) => m.id.endsWith("weapon-mount"))?.id ?? "";
     design.weapons = [
       ...design.weapons,
-      { name: "", weapon_type: "", dv: "", mode: "", ar: [0, 0, 0, 0, 0], mods: "", mount: firstMount },
+      { name: "", weapon_type: "", dv: "", mode: "", ar: [0, 0, 0, 0, 0], mods: "", mount: firstMount, ammo: "" },
     ];
     changed();
   });
@@ -478,7 +652,9 @@ function weaponsFieldset(): HTMLElement {
     el(
       "p",
       { class: "hint" },
-      "Each in a weapon mount (add mounts in Mods), which sets its ammunition and adds 2 to its Attack Ratings.",
+      design.books.includes(DEADLY_ARTS)
+        ? "Each in a weapon mount (add mounts in Mods), which sets its ammunition and adds 2 to its Attack Ratings, or on a mil-spec hardpoint, which keeps the weapon's own."
+        : "Each in a weapon mount (add mounts in Mods), which sets its ammunition and adds 2 to its Attack Ratings.",
     ),
     ...design.weapons.map(weaponRow),
     add,
@@ -491,7 +667,9 @@ function modsFieldset(): HTMLElement {
     "",
     [
       { value: "", label: "Choose a mod…" },
-      ...catalog.mods.map((m) => ({ value: m.id, label: m.name, group: MOD_GROUPS[m.group] ?? m.group })),
+      ...catalog.mods
+        .filter((m) => m.book == null || design.books.includes(m.book))
+        .map((m) => ({ value: m.id, label: m.name, group: MOD_GROUPS[m.group] ?? m.group })),
     ],
     (id) => {
       const def = catalog.mods.find((m) => m.id === id);
@@ -614,7 +792,11 @@ function renderReport(r: Report): void {
         `Engineering + Logic (${r.design_test.day}, 1 day), (${r.design_test.week}, 1 week), or (${r.design_test.month}, 1 month) Extended test`,
       ],
       ["Parts", `${thousands(r.parts_cost)}¥ to build it yourself, Availability ${r.availability}`],
-      ["Build it", "Engineering + Logic (20, 1 week) Extended test, in a facility"],
+      [
+        "Build it",
+        `Engineering + Logic (${r.design_test.build_threshold}, 1 week) Extended test, in a facility` +
+          (r.milspec.military ? " (+8, military)" : ""),
+      ],
     ]),
   );
   if (r.mods.lines.length) parts.push(...modsReport(r));
@@ -672,7 +854,16 @@ function slotsText(n: number): string {
 
 async function recalculate(): Promise<void> {
   try {
-    renderReport(await invoke<Report>("evaluate_design", { design }));
+    const report = await invoke<Report>("evaluate_design", { design });
+    renderReport(report);
+    // The form shows each mil-spec hardpoint's Grade, which Rust works out:
+    // redraw it when they change.
+    if (JSON.stringify(report.milspec.hardpoints) !== JSON.stringify(lastGrades)) {
+      lastGrades = report.milspec.hardpoints;
+      const scroll = formEl.scrollTop;
+      renderForm();
+      formEl.scrollTop = scroll;
+    }
   } catch (error) {
     reportEl.replaceChildren(el("ul", { class: "problems" }, el("li", {}, String(error))));
   }

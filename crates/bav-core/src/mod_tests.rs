@@ -484,6 +484,7 @@ fn weapon(name: &str, ar: [i32; 5], mount: &str) -> Weapon {
         ar: ar.to_vec(),
         mods: "smartgun system".into(),
         mount: mount.into(),
+        ..Weapon::default()
     }
 }
 
