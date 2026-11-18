@@ -720,3 +720,15 @@ multiplier = 3.0
 [[book]]
 id = "deadly-arts"
 name = "Deadly Arts"
+
+[[book]]
+id = "smooth-operations"
+name = "Smooth Operations"
+
+[[book]]
+id = "explosive-decompression"
+name = "Explosive Decompression"
+
+[[book]]
+id = "sixth-world-companion"
+name = "Sixth World Companion"

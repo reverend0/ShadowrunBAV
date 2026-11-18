@@ -700,7 +700,36 @@ function modsFieldset(): HTMLElement {
     ),
     ...design.mods.map(modRow),
     add,
+    ...packPicker(),
   );
+}
+
+/** A book's packs of mods (Sixth World Companion): picking one adds its mods. */
+function packPicker(): HTMLElement[] {
+  const packs = catalog.pack.filter((p) => design.books.includes(p.book));
+  if (!packs.length) return [];
+  return [
+    select(
+      "Add a pack",
+      "",
+      [
+        { value: "", label: "Choose a pack…" },
+        ...packs.map((p) => ({
+          value: p.id,
+          label: p.min_body == null ? p.name : `${p.name} (Body ${p.min_body} or more)`,
+        })),
+      ],
+      (id) => {
+        const pack = packs.find((p) => p.id === id);
+        if (!pack) return;
+        // Each mod as the pack lists it; a missing count is 1.
+        const added = pack.mods.map((m) => ({ ...m, count: Math.max(1, m.count) }));
+        design.mods = [...design.mods, ...added];
+        changed();
+      },
+    ),
+    el("p", { class: "hint" }, "A pack adds its mods, each priced as usual."),
+  ];
 }
 
 // The report.

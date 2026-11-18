@@ -27,7 +27,7 @@ The first `tauri dev` compiles everything and takes a few minutes.
 
 - `data/design.toml`: the book's tables (size classes, chassis, powertrains, consoles, design options, design modifications, quality factors).
 - `data/mods.toml`: the mods ("Making It Yours"), with what each field means at its top.
-- `crates/bav-core/src/`: `catalog.rs` (the tables), `design.rs` (a design), `calc.rs` (the calculations), `mods.rs` (the mods on a design), `milspec.rs` (Deadly Arts' mil-spec options), `block.rs` (the stat block, as in ShadowrunEdit), `files.rs` (`.bav` files), `pdf.rs` (the PDF vehicle sheet), `tests.rs`, `mod_tests.rs`, and `milspec_tests.rs`.
+- `crates/bav-core/src/`: `catalog.rs` (the tables), `design.rs` (a design), `calc.rs` (the calculations), `mods.rs` (the mods on a design), `milspec.rs` (Deadly Arts' mil-spec options), `block.rs` (the stat block, as in ShadowrunEdit), `files.rs` (`.bav` files), `pdf.rs` (the PDF vehicle sheet), `tests.rs`, `mod_tests.rs`, `milspec_tests.rs`, and `book_tests.rs`.
 - `src-tauri/`: the window and its Tauri commands.
 - `src/`: the UI (`main.ts`), its text helpers (`format.ts`), update checks (`updater.ts`), and the JSON shapes shared with Rust (`types.ts`, kept in step with the Rust structs).
 

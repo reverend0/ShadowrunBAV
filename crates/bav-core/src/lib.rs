@@ -22,6 +22,8 @@ pub mod mods;
 pub mod pdf;
 
 #[cfg(test)]
+mod book_tests;
+#[cfg(test)]
 mod milspec_tests;
 #[cfg(test)]
 mod mod_tests;

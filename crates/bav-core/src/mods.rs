@@ -460,6 +460,8 @@ fn check_requirements(
         }
         Some("medevac-drone") => matches!(size, Some(DroneSize::Medium | DroneSize::Large)),
         Some("small-drone") => matches!(size, Some(s) if s <= DroneSize::Medium),
+        Some("drone") => ctx.is_drone(),
+        Some("micro-mini-drone") => matches!(size, Some(DroneSize::Micro | DroneSize::Mini)),
         Some("valkyrie") => {
             !ctx.is_drone() || (size == Some(DroneSize::Large) && known.iter().any(|(inst, _)| inst.id == "medevac"))
         }
@@ -471,6 +473,8 @@ fn check_requirements(
             Some("wheeled") => "wheeled vehicles",
             Some("medevac-drone") => "medium and large drones",
             Some("small-drone") => "medium drones and smaller",
+            Some("drone") => "drones",
+            Some("micro-mini-drone") => "microdrones and minidrones",
             _ => "passenger vehicles, or large drones with Medevac Modifications",
         };
         problems.push(format!("{name} is only for {what}."));
@@ -560,6 +564,13 @@ impl Effects<'_, '_> {
             Some("off-road-tires") => self
                 .notes
                 .push("Off-road tires: Acceleration +5 and Speed Interval +10 off road; −5 and −10 on road.".into()),
+            Some("tag-sprayer") => self.notes.push(format!(
+                "Drone-mounted tag sprayer: {} pixel tags.",
+                if ctx.chassis.drone_size == Some(DroneSize::Micro) { "1,000" } else { "10,000" }
+            )),
+            Some("spaceworthy") => self.notes.push(
+                "Spaceworthy: works in space (thrusters, or magnets to move on a hull), with tether hardpoints.".into(),
+            ),
             Some("smart-tires") => {
                 self.notes.push("Smart tires: Acceleration +5 and Speed Interval +10 on road and off road.".into())
             }
@@ -673,6 +684,27 @@ fn line(w: &Worked, report: &mut ModsReport) -> ModLine {
         built_in: w.installed.built_in,
         build_points,
         install_test,
+    }
+}
+
+/// Prices Spaceworthy (Explosive Decompression, p. 97) at the drone's own
+/// price, so the drone ends up costing twice as much (decided). It's known
+/// only once the drone's price is, so the totals are added to here.
+///
+/// The loop borrows `report.lines` mutably while it adds to
+/// `report.built_in_cost` and the other totals: Rust allows that because
+/// they're different fields of the struct, borrowed separately.
+pub fn price_spaceworthy(report: &mut ModsReport, drone_price: i64) {
+    for line in report.lines.iter_mut().filter(|line| line.id == "spaceworthy") {
+        line.price = drone_price;
+        if line.built_in {
+            report.built_in_cost += drone_price;
+        } else {
+            // An accessory: no do-it-yourself discount.
+            line.diy_price = drone_price;
+            report.aftermarket_cost += drone_price;
+            report.aftermarket_diy_cost += drone_price;
+        }
     }
 }
 

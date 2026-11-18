@@ -17,7 +17,7 @@ Design a vehicle from scratch ("Build Your Dream", pp. 147–157), mod it ("Maki
 
 **Arm.** Type in the vehicle's weapons and fit each in a weapon mount, which sets its ammunition and adds 2 to its Attack Ratings.
 
-**Other books.** Turn on *Deadly Arts* for a design to add its mil-spec design options (frame, heavy plate, airframe plate, comms, and hardpoints sized for their weapons) and its two mods.
+**Other books.** Turn books on for a design to use their rules: *Deadly Arts*' mil-spec design options (frame, heavy plate, airframe plate, comms, and hardpoints sized for their weapons) and its two mods, *Smooth Operations*' drone-mounted tag sprayer, *Explosive Decompression*'s Spaceworthy, and *Sixth World Companion*'s vehicle packs.
 
 **Share.** The stat block is laid out as ShadowrunEdit lays out a vehicle, as a gear book's (Avail, Cost, Standard Equipment) or a gamemaster's (DR, I/ID, AC, CM), and Copy pastes it there. Export PDF prints a vehicle sheet in the book's style. Designs save as `.bav` files.
 
@@ -25,7 +25,7 @@ A design that breaks a rule still calculates, and the app says what to fix.
 
 ## The book, and its rulings
 
-You need *Double Clutch* (and *Deadly Arts* for its options): the app holds only the names and numbers its calculations use, never the book's rules text or descriptions.
+You need *Double Clutch* (and any other book you turn on): the app holds only the names and numbers its calculations use, never the book's rules text or descriptions.
 
 The book sometimes disagrees with itself: a rule and its example give different numbers, or a value sits in the wrong column. Every such case, what the app does instead, the three build examples corrected, and the assumptions where the book is silent are in **[RULINGS.md](RULINGS.md)**. Found another? [Open an issue](https://github.com/reverend0/ShadowrunBAV/issues) with the page and what disagrees.
 

@@ -7,6 +7,8 @@ use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
+use crate::design::InstalledMod;
+
 /// Every table the design rules use.
 ///
 /// `#[derive(Deserialize)]` lets `toml` build this straight from the file:
@@ -28,6 +30,25 @@ pub struct Catalog {
     /// Sourcebooks beyond Double Clutch that a design can turn on.
     #[serde(default)]
     pub book: Vec<Book>,
+    /// Bundles of mods a book sells together (Sixth World Companion's
+    /// vehicle packs), from `data/mods.toml`.
+    #[serde(default)]
+    pub pack: Vec<Pack>,
+}
+
+/// A bundle of mods: adding it adds each of its mods to the design, priced
+/// as usual.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Pack {
+    pub id: String,
+    pub name: String,
+    pub book: String,
+    /// The smallest Body the book allows it on.
+    #[serde(default)]
+    pub min_body: Option<i32>,
+    /// The mods, as a design lists them (a missing rating, count, or note
+    /// takes `InstalledMod`'s default).
+    pub mods: Vec<InstalledMod>,
 }
 
 /// A sourcebook with vehicle rules of its own (Deadly Arts).
@@ -305,6 +326,8 @@ const MODS_TOML: &str = include_str!("../../../data/mods.toml");
 struct ModsFile {
     #[serde(rename = "mod")]
     mods: Vec<Mod>,
+    #[serde(default, rename = "pack")]
+    packs: Vec<Pack>,
 }
 
 impl Catalog {
@@ -321,6 +344,7 @@ impl Catalog {
             let mut catalog: Catalog = toml::from_str(DESIGN_TOML).expect("data/design.toml is valid");
             let mods: ModsFile = toml::from_str(MODS_TOML).expect("data/mods.toml is valid");
             catalog.mods = mods.mods;
+            catalog.pack = mods.packs;
             catalog
         })
     }

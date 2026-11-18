@@ -83,6 +83,16 @@ export interface Catalog {
   quality: Quality[];
   mods: VehicleMod[];
   book: Book[];
+  pack: Pack[];
+}
+
+/** A bundle of mods from a book; adding it adds each of its mods. */
+export interface Pack {
+  id: string;
+  name: string;
+  book: string;
+  min_body: number | null;
+  mods: InstalledMod[];
 }
 
 export interface Improvements {

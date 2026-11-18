@@ -7,6 +7,7 @@ The page numbers are *Double Clutch*'s. The book's wording isn't quoted; each ru
 - [Build Your Dream](#build-your-dream-pp-147157): designing a vehicle (R1–R11)
 - [Making It Yours](#making-it-yours-pp-120144): mods (R12–R20)
 - [Deadly Arts](#deadly-arts): its mil-spec options and mods (R21–R23)
+- [Other books](#other-books): Smooth Operations, Explosive Decompression, Sixth World Companion (R24–R26)
 - [The examples, corrected](#the-examples-corrected): the three build examples' numbers next to the app's
 - [Not yet confirmed](#not-yet-confirmed): what the app assumes where the book is silent
 
@@ -66,6 +67,16 @@ Page numbers in this section are *Deadly Arts*'. Its options are used only when 
 
 **R23. Any mil-spec option makes it military** (p. 150). Building or repairing a military vehicle is +8 to the threshold, and the book doesn't say what makes a design military. *The app:* any of the mil-spec design options; the build test's threshold is 28.
 
+## Other books
+
+Page numbers are each book's own.
+
+**R24. The drone-mounted tag sprayer costs 1,000¥, with no Availability** (Smooth Operations, p. 126). The espionage gear table's columns don't line up in the book's text, so its row reads two ways. *The app:* as the owner's copy shows it, Availability —, 1,000¥.
+
+**R25. Spaceworthy doubles the drone's price** (Explosive Decompression, p. 97). Its cost is the original drone cost × 2. *The app:* the mod costs the drone's price, so the drone with it costs twice the original.
+
+**R26. A vehicle pack adds its mods at their own prices** (Sixth World Companion, p. 71). Each pack lists a price for the bundle. *The app:* adding a pack adds each of its mods, priced as Double Clutch prices them, not at the pack's price.
+
 ## The examples, corrected
 
 What each example says, and what the app works out with the rulings above. The tests check the app's column.
@@ -111,4 +122,7 @@ Where the book is silent, the app assumes the following. Each is one place in th
 - Deadly Arts: a weapon on a mil-spec hardpoint keeps its own ammunition and Attack Ratings (Double Clutch's +2 is for its weapon mounts).
 - Deadly Arts: the +8 for a military vehicle is on the build test, not the design test or installing mods.
 - Deadly Arts: airframe ceramic plate's bonus dice are half the designed Armor, rounded down, and it costs 2 a point of that Armor.
+- Smooth Operations: the permanent tag sprayer's mod slot is a chassis slot, and it's only for microdrones and minidrones (the sizes the book describes).
+- Explosive Decompression: Spaceworthy's "original drone cost" is the drone's price as designed, with any mods built into it; it gets no do-it-yourself discount.
+- Sixth World Companion: a pack's "rigger adaptation" is the rigger interface, its "shredder tires" shredders, and Rigger's Baby's "4 CF smuggling compartment with electromagnetic shielding" a smuggling compartment of 4 CF and electromagnetic shielding for 4 CF. Rigger's Baby needs 5 CF of cargo, more than a car has.
 - A large weapon mount shows 500(b) rounds even when it holds rockets or missiles, which the book counts by the vehicle's Body.

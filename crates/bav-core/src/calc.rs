@@ -438,7 +438,7 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
         frame_body: milspec.frame_body,
         plate_offset: milspec.plate_offset,
     };
-    let (modded, mods_report) = mods::apply(&design.mods, catalog, &context, &factory, &mut problems, &mut notes);
+    let (modded, mut mods_report) = mods::apply(&design.mods, catalog, &context, &factory, &mut problems, &mut notes);
     block::check_weapons(design, &milspec, &mut problems);
     // Deadly Arts' rules between its options and Double Clutch's mods.
     let has_mod = |id: &str| mods_report.lines.iter().any(|line| line.id == id);
@@ -537,7 +537,10 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     }
     // The vehicle's price: its Build Point Value, plus the price of the mods
     // built into it (p. 151). Mods installed afterward are priced apart.
-    let cost = i64::from(build_point_value.max(0)) * 1000 + mods_report.built_in_cost;
+    let mut cost = i64::from(build_point_value.max(0)) * 1000 + mods_report.built_in_cost;
+    // Spaceworthy costs what the drone does (Explosive Decompression).
+    mods::price_spaceworthy(&mut mods_report, cost);
+    cost = i64::from(build_point_value.max(0)) * 1000 + mods_report.built_in_cost;
 
     // Availability (p. 155): 2, +1 for an aircraft, plus the qualities'.
     if is_aircraft {

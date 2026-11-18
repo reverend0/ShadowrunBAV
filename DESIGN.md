@@ -12,7 +12,7 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
 ## Scope
 
 - Designing from scratch ("Build Your Dream"), and mods on the design ("Making It Yours"): accessories, chassis, skin, powertrain, secondary propulsion, electronics, hardpoints, and hardpoint devices.
-- Other books, each turned on per design: Deadly Arts' mil-spec design options and its two mods (see "Other books").
+- Other books, each turned on per design: Deadly Arts' mil-spec design options and its two mods, Smooth Operations' drone-mounted tag sprayer, Explosive Decompression's Spaceworthy, and Sixth World Companion's vehicle packs (see "Other books").
 - Not covered: the book's stock vehicles (their stats are the book's data; one could be typed in later), trailers and sidecars (vehicles of their own), the rigger cyberware and autosofts (not vehicle mods), and redlining (a driving rule).
 - Open source under the MIT License (decided, 2026-11-15).
 
@@ -110,13 +110,19 @@ Deadly Arts, "Mil-Spec Mayhem" (pp. 150–152), in `milspec.rs`, its Design Poin
 - Any of these makes it a military vehicle: the build test's threshold is 28 (decided, R23).
 - Its mods: MDS (Missile Defense System), 2 electronics slots, and Mobile Magic Lodge, 50 CF (decided, R22).
 
+Smooth Operations (p. 124): the drone-mounted tag sprayer installed permanently, one chassis slot, no Availability, 1,000¥ (decided, R24), for microdrones (1,000 tags) and minidrones (10,000). The clip-on version is gear, not a mod.
+
+Explosive Decompression (p. 97): Spaceworthy, for drones. It changes no stats, takes no slots, and costs the drone's own price, so the drone ends up costing twice as much (decided, R25); built in, it doubles the drone's price.
+
+Sixth World Companion (p. 71): its four vehicle packs (Dirty Tricks, Gun Ports, Rigger's Baby, Combat Biker). Picking one under Mods adds each of its mods, priced as usual, not at the pack's price (decided, R26); the list shows a pack's Body minimum. Its autosoft packs are software, not vehicle mods. Packs are `[[pack]]` entries in `data/mods.toml`.
+
 ## Rules decisions
 
 Every place the book disagrees with itself or with its examples, what the app does instead, the examples corrected, and the assumptions not yet confirmed are in [RULINGS.md](RULINGS.md), numbered R1, R2, and so on. A new ruling goes there, with a test, and "(decided)" in this file points to one.
 
 ## Testing
 
-- `cargo test -p bav-core`: a test per rule, named after it, the book's three examples (as decided above, Examples 1 and 3 again with their mods), every chassis × powertrain × console combination, every mod on a car and a drone, Deadly Arts' options and turning it on and off (`milspec_tests.rs`), and design files saved and reopened.
+- `cargo test -p bav-core`: a test per rule, named after it, the book's three examples (as decided above, Examples 1 and 3 again with their mods), every chassis × powertrain × console combination, every mod on a car and a drone, Deadly Arts' options and turning it on and off (`milspec_tests.rs`), the smaller books' mods and packs (`book_tests.rs`), and design files saved and reopened.
 - `npm test`: the UI's text helpers and the update checks.
 - Test data is made up; the book's examples are restated as numbers only.
 
@@ -128,5 +134,5 @@ Every place the book disagrees with itself or with its examples, what the app do
 | Trailers and sidecars | Their own small profiles (p. 127) and the towing rules |
 | Operation time | The base 6 hours, Improved Economy/Capacity's +33% a rank, and what drains it |
 | Export to ShadowrunEdit | Copy gives the stat block to paste; a `.md` with an `sr6-vehicle` block would open as one, ready to edit |
-| More books | Explosive Decompression's Spaceworthy drone mod (Availability 4(L), twice the drone's price); Smooth Operations' drone-mounted tag sprayer (one mod slot installed); Sixth World Companion's drone packages, bundles of Double Clutch's mods |
+| Beyond Measure | Holostreets' space mods, design options, powertrains, and secondary propulsion (pp. 101–103), written to work with Double Clutch; its tables need settling |
 | Large mounts with rockets or missiles | A large mount holds as many as the vehicle's Body (p. 142); today every large mount shows 500(b) |

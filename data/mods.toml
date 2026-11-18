@@ -22,10 +22,14 @@
 #   many              can be installed more than once (a count)
 #   exclusive         one choice in this group at a time
 #   requires          passenger (not a drone), wheeled, medevac-drone,
-#                     small-drone (medium drones and smaller), valkyrie
+#                     small-drone (medium drones and smaller), valkyrie,
+#                     drone, micro-mini-drone
 #   effect            what it changes, worked out in mods.rs
 #   book              the sourcebook it's from, when it isn't Double Clutch
 #                     (offered only when a design turns that book on)
+#
+# A [[pack]] is a bundle of these mods from a book (id, name, book, min_body,
+# and its mods as a design lists them); adding one adds each of its mods.
 
 # Accessories (pp. 120–122).
 
@@ -1467,3 +1471,88 @@ cf = 50.0
 availability = "9"
 cost = 80000
 book = "deadly-arts"
+
+# Smooth Operations (p. 124; its table on p. 126). The permanent version,
+# which takes a mod slot; the clip-on one is gear, not a mod.
+[[mod]]
+id = "drone-tag-sprayer"
+name = "Drone-Mounted Tag Sprayer"
+group = "chassis"
+slot_type = "chassis"
+slots = 1.0
+availability = ""
+cost = 1000
+requires = "micro-mini-drone"
+effect = "tag-sprayer"
+book = "smooth-operations"
+
+# Explosive Decompression (p. 97). No stats change; its price is the drone's
+# own, so the drone ends up costing twice as much (decided), worked out in
+# calc.rs once the drone's price is known.
+[[mod]]
+id = "spaceworthy"
+name = "Spaceworthy"
+group = "accessory"
+slot_type = "none"
+availability = "4(L)"
+requires = "drone"
+effect = "spaceworthy"
+book = "explosive-decompression"
+
+# Sixth World Companion's vehicle packs (p. 71): bundles of the mods above.
+# Adding one adds its mods, each priced as usual (decided), not at the
+# pack's price. Each mod: id, rating, count, note (as a design lists mods).
+
+[[pack]]
+id = "dirty-tricks"
+name = "Dirty Tricks Vehicle PACK"
+book = "sixth-world-companion"
+mods = [
+  { id = "electrochromic-paint" },
+  { id = "oil-slick-sprayer" },
+  { id = "road-strip-ejector" },
+  { id = "spike-strip", count = 6 },
+  { id = "smoke-projector-thermal" },
+  { id = "gas-dispersal", note = "5 doses of Neurostun X" },
+  { id = "shredders" },
+  { id = "spoof-kit" },
+]
+
+[[pack]]
+id = "gun-ports"
+name = "Gun Ports Vehicle PACK"
+book = "sixth-world-companion"
+mods = [
+  { id = "gun-port", count = 4, note = "front, left, right, or rear each" },
+]
+
+[[pack]]
+id = "riggers-baby"
+name = "Rigger's Baby"
+book = "sixth-world-companion"
+min_body = 10
+mods = [
+  { id = "rigger-interface" },
+  { id = "improved-handling", rating = 2 },
+  { id = "rigger-cocoon" },
+  { id = "smuggling-compartment", rating = 4 },
+  { id = "electromagnetic-shielding", rating = 4, note = "smuggling compartment" },
+  { id = "elemental-hardening", rating = 2, note = "electricity" },
+  { id = "improved-acceleration", rating = 2 },
+  { id = "nitro-boost" },
+  { id = "improved-stability", rating = 2 },
+  { id = "top-speed-increase", rating = 2 },
+]
+
+[[pack]]
+id = "combat-biker"
+name = "Combat Biker"
+book = "sixth-world-companion"
+min_body = 4
+mods = [
+  { id = "rigger-interface" },
+  { id = "improved-handling", rating = 2 },
+  { id = "elemental-hardening", rating = 2, note = "electricity" },
+  { id = "nitro-boost" },
+  { id = "improved-stability", rating = 1 },
+]
