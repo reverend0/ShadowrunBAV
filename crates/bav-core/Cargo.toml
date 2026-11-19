@@ -1,6 +1,6 @@
 [package]
 name = "bav-core"
-version = "0.4.0"
+version = "0.5.0"
 description = "Vehicle and drone design rules from Shadowrun Sixth World's Double Clutch"
 edition = "2024"
 license = "MIT"
