@@ -3,9 +3,13 @@
 
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask, message, open, save } from "@tauri-apps/plugin-dialog";
 import type { Update } from "@tauri-apps/plugin-updater";
 import { checkNow, installUpdate, startUpdateChecks } from "./updater.ts";
+import { CANCEL, DONT_SAVE, mayClose, SAVE } from "./closing.ts";
+import { isPicture, loadPicture } from "./picture.ts";
+import { summary, usage, ZONES, type Zone, zoneAtPixel, zoneOf } from "./zones.ts";
 import { chassisLabel, consoleLabel, factor, fileName, powertrainLabel, signed, thousands } from "./format.ts";
 import {
   type Catalog,
@@ -475,18 +479,6 @@ function milspecFieldset(): HTMLElement {
 
 // Mods ("Making It Yours").
 
-const MOD_GROUPS: Record<string, string> = {
-  accessory: "Accessories",
-  chassis: "Chassis",
-  hardpoint: "Hardpoints",
-  device: "Hardpoint devices",
-  seating: "Seating and cargo",
-  skin: "Skin",
-  powertrain: "Powertrain",
-  propulsion: "Secondary propulsion",
-  electronics: "Electronics",
-};
-
 /** Replaces one installed mod with a changed copy, and recalculates. */
 function updateMod(index: number, change: Partial<InstalledMod>, redraw = false): void {
   design.mods = design.mods.map((m, i) => (i === index ? { ...m, ...change } : m));
@@ -501,10 +493,15 @@ function numberBox(value: number, min: number, max: number, title: string, onCha
   return input;
 }
 
-/** One installed mod: its name, rating, count, built in, note, and remove. */
-function modRow(installed: InstalledMod, index: number): HTMLElement {
+/**
+ * One installed mod: its rating, count, built in, note, and remove. Under a
+ * ticked mod in the zone's list, its name is already there, so it's left out.
+ */
+function modRow(installed: InstalledMod, index: number, withName = true): HTMLElement {
   const def = catalog.mods.find((m) => m.id === installed.id);
-  const row = el("div", { class: "mod-row" }, el("span", { class: "mod-name" }, def?.name ?? installed.id));
+  const row = withName
+    ? el("div", { class: "mod-row" }, el("span", { class: "mod-name" }, def?.name ?? installed.id))
+    : el("div", { class: "mod-row mod-detail" });
   if (def?.rating_max != null) {
     const min = def.rating_min ?? 1;
     row.append(
@@ -661,25 +658,171 @@ function weaponsFieldset(): HTMLElement {
   );
 }
 
-function modsFieldset(): HTMLElement {
-  const add = select(
-    "Add",
-    "",
-    [
-      { value: "", label: "Choose a mod…" },
-      ...catalog.mods
-        .filter((m) => m.book == null || design.books.includes(m.book))
-        .map((m) => ({ value: m.id, label: m.name, group: MOD_GROUPS[m.group] ?? m.group })),
-    ],
-    (id) => {
-      const def = catalog.mods.find((m) => m.id === id);
-      if (!def) return;
-      // A rated mod starts at its lowest positive rating.
-      const rating = def.rating_max == null ? 0 : Math.max(1, def.rating_min ?? 1);
-      design.mods = [...design.mods, { id, rating, count: 1, built_in: false, note: "" }];
-      changed();
-    },
+// The vehicle drawing: click a zone to list its mods. The zone map is a
+// second picture in flat colors (see scripts/vehicle-art.html), read once.
+
+/** The zone whose mods are listed. */
+let selectedZone: Zone = "chassis";
+/** The zone map's pixels, once loaded. */
+let zoneMap: ImageData | null = null;
+/** The last report, for each zone's usage. */
+let lastReport: Report | null = null;
+
+function loadZoneMap(): void {
+  const img = new Image();
+  img.addEventListener("load", () => {
+    const canvas = el("canvas", { width: String(img.naturalWidth), height: String(img.naturalHeight) });
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(img, 0, 0);
+    zoneMap = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    paintHighlight();
+  });
+  img.src = "/vehicles/suv-zones.png";
+}
+
+/** The zone under the pointer, read from the zone map. */
+function zoneUnder(event: MouseEvent, target: HTMLElement): Zone | null {
+  if (!zoneMap) return null;
+  const box = target.getBoundingClientRect();
+  const x = Math.floor(((event.clientX - box.left) / box.width) * zoneMap.width);
+  const y = Math.floor(((event.clientY - box.top) / box.height) * zoneMap.height);
+  if (x < 0 || y < 0 || x >= zoneMap.width || y >= zoneMap.height) return null;
+  const i = (y * zoneMap.width + x) * 4;
+  const d = zoneMap.data;
+  return zoneAtPixel(d[i], d[i + 1], d[i + 2], d[i + 3]);
+}
+
+/** Tints the selected zone on the drawing's overlay. */
+function paintHighlight(): void {
+  const canvas = document.querySelector<HTMLCanvasElement>(".vehicle canvas");
+  if (!canvas || !zoneMap) return;
+  canvas.width = zoneMap.width;
+  canvas.height = zoneMap.height;
+  const ctx = canvas.getContext("2d");
+  const color = ZONES.find((z) => z.id === selectedZone)?.color;
+  if (!ctx || !color) return;
+  const out = ctx.createImageData(zoneMap.width, zoneMap.height);
+  const [r, g, b] = [1, 3, 5].map((k) => Number.parseInt(color.slice(k, k + 2), 16));
+  const d = zoneMap.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (zoneAtPixel(d[i], d[i + 1], d[i + 2], d[i + 3]) === selectedZone) {
+      out.data.set([r, g, b, 90], i);
+    }
+  }
+  ctx.putImageData(out, 0, 0);
+}
+
+function selectZone(zone: Zone): void {
+  selectedZone = zone;
+  const scroll = formEl.scrollTop;
+  renderForm();
+  formEl.scrollTop = scroll;
+}
+
+/** Each zone's chip shows how full it is; redone after every report. */
+function showZoneUsage(r: Report): void {
+  lastReport = r;
+  const accessories = design.mods.filter((m) => {
+    const def = catalog.mods.find((d) => d.id === m.id);
+    return def != null && zoneOf(def) === "fittings";
+  }).length;
+  for (const chip of document.querySelectorAll<HTMLElement>(".zone-chip")) {
+    const { text, over } = usage(chip.dataset.zone as Zone, r, accessories);
+    const count = chip.querySelector(".zone-usage");
+    if (count) count.textContent = text;
+    chip.classList.toggle("over", over);
+  }
+}
+
+function vehicleView(): HTMLElement {
+  const picture = el(
+    "div",
+    { class: "vehicle", title: "Click a part of the vehicle to list its mods" },
+    el("img", { class: "light", src: "/vehicles/suv-light.png", alt: "The vehicle, its mod zones tinted" }),
+    el("img", { class: "dark", src: "/vehicles/suv-dark.png", alt: "" }),
+    el("canvas"),
   );
+  picture.addEventListener("click", (e) => {
+    const zone = zoneUnder(e, picture);
+    if (zone) selectZone(zone);
+  });
+  picture.addEventListener("mousemove", (e) => {
+    const zone = zoneUnder(e, picture);
+    picture.style.cursor = zone ? "pointer" : "default";
+    picture.title = zone ? (ZONES.find((z) => z.id === zone)?.name ?? "") : "Click a part of the vehicle to list its mods";
+  });
+  const chips = ZONES.map((z) => {
+    const chip = el(
+      "button",
+      { type: "button", class: `zone-chip${z.id === selectedZone ? " selected" : ""}`, "data-zone": z.id },
+      el("span", { class: "swatch", style: `background:${z.color}` }),
+      z.name,
+      el("span", { class: "zone-usage" }),
+    );
+    chip.addEventListener("click", () => selectZone(z.id));
+    return chip;
+  });
+  // The image may already be loaded from an earlier drawing of the form.
+  queueMicrotask(() => {
+    paintHighlight();
+    if (lastReport) showZoneUsage(lastReport);
+  });
+  return el("div", {}, picture, el("div", { class: "zone-chips" }, ...chips));
+}
+
+/** Adds one of a mod at its lowest rating. */
+function addMod(id: string): void {
+  const def = catalog.mods.find((m) => m.id === id);
+  if (!def) return;
+  // A rated mod starts at its lowest positive rating.
+  const rating = def.rating_max == null ? 0 : Math.max(1, def.rating_min ?? 1);
+  design.mods = [...design.mods, { id, rating, count: 1, built_in: false, note: "" }];
+  changed();
+}
+
+/** The selected zone's mods: tick one to add it, untick to remove it. */
+function zoneList(): HTMLElement[] {
+  const installedIds = new Set(design.mods.map((m) => m.id));
+  const mods = catalog.mods.filter(
+    (m) => zoneOf(m) === selectedZone && (m.book == null || design.books.includes(m.book) || installedIds.has(m.id)),
+  );
+  const rows: HTMLElement[] = [];
+  for (const def of mods) {
+    const entries = design.mods.map((m, i) => [m, i] as const).filter(([m]) => m.id === def.id);
+    const box = el("input", { type: "checkbox" });
+    box.checked = entries.length > 0;
+    box.addEventListener("change", () => {
+      if (box.checked) {
+        addMod(def.id);
+      } else {
+        design.mods = design.mods.filter((m) => m.id !== def.id);
+        // A weapon in a mount that's gone keeps its place, flagged.
+        changed();
+      }
+    });
+    const off = def.book != null && !design.books.includes(def.book);
+    rows.push(
+      el(
+        "label",
+        { class: `zone-mod${off ? " off" : ""}` },
+        box,
+        el("span", { class: "mod-name" }, def.name),
+        el("span", { class: "hint" }, off ? "its book is off" : summary(def)),
+      ),
+    );
+    for (const [m, i] of entries) rows.push(modRow(m, i, false));
+  }
+  // Mods the catalog doesn't know (a hand-edited file) stay removable.
+  if (selectedZone === "chassis") {
+    design.mods.forEach((m, i) => {
+      if (!catalog.mods.some((d) => d.id === m.id)) rows.push(modRow(m, i));
+    });
+  }
+  return rows;
+}
+
+function modsFieldset(): HTMLElement {
   return el(
     "fieldset",
     {},
@@ -698,9 +841,9 @@ function modsFieldset(): HTMLElement {
       },
       "The book doesn't say whether a mod built into the design uses the vehicle's mod slots (RULINGS.md R19). Unticked, they cost Build Points only.",
     ),
-    ...design.mods.map(modRow),
-    add,
+    vehicleView(),
     ...packPicker(),
+    el("div", { class: "zone-list" }, ...zoneList()),
   );
 }
 
@@ -741,6 +884,40 @@ function table(rows: (string | Node)[][], head?: string[]): HTMLTableElement {
   return t;
 }
 
+/** The vehicle's picture, with buttons to add, change, or remove it. */
+function pictureView(): HTMLElement {
+  const input = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp", hidden: "" });
+  input.addEventListener("change", async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      design.image = await loadPicture(file);
+      changed(false);
+    } catch (error) {
+      await message(`Couldn't load that picture: ${error}`, { title: "ShadowrunBAV", kind: "error" });
+    }
+  });
+  const choose = (label: string) => {
+    const button = el("button", { type: "button" }, label);
+    button.addEventListener("click", () => input.click());
+    return button;
+  };
+  if (!isPicture(design.image)) {
+    return el("div", { class: "picture empty" }, input, choose("Add a picture…"));
+  }
+  const remove = el("button", { type: "button" }, "Remove picture");
+  remove.addEventListener("click", () => {
+    design.image = "";
+    changed(false);
+  });
+  return el(
+    "div",
+    { class: "picture" },
+    el("img", { src: design.image, alt: design.name ? `The ${design.name}` : "The vehicle" }),
+    el("div", { class: "picture-buttons" }, input, choose("Change picture…"), remove),
+  );
+}
+
 function renderReport(r: Report): void {
   const s = r.stats;
   const copy = el("button", { type: "button", title: "Copy the stat block, to paste into ShadowrunEdit or a document" }, "Copy");
@@ -752,9 +929,10 @@ function renderReport(r: Report): void {
     }, 1200);
   });
 
-  // The stat block, as ShadowrunEdit lays it out.
+  // The stat block, as ShadowrunEdit lays it out, under the vehicle's picture.
   const b = r.block;
   const parts: (Node | string)[] = [
+    pictureView(),
     el("h2", {}, b.title, " ", el("span", { class: "detail" }, `(${b.detail})`), " ", copy),
     el("div", { class: "statline" }, table([b.main.values], b.main.headers)),
   ];
@@ -773,9 +951,10 @@ function renderReport(r: Report): void {
       parts.push(el("p", { class: "block-line" }, el("b", {}, `${line.label}: `), line.entries.join(", ")));
     }
   }
-  if (r.mods.lines.length) {
+  // As built, with its built-in mods: shown when mods are installed afterward.
+  if (r.mods.lines.some((line) => !line.built_in)) {
     parts.push(
-      el("p", { class: "hint" }, "As designed, before mods:"),
+      el("p", { class: "hint" }, "As built, before the mods installed afterward:"),
       el("div", { class: "statline" }, table([r.factory_stat_line.values], r.factory_stat_line.headers)),
     );
   }
@@ -885,6 +1064,7 @@ async function recalculate(): Promise<void> {
   try {
     const report = await invoke<Report>("evaluate_design", { design });
     renderReport(report);
+    showZoneUsage(report);
     // The form shows each mil-spec hardpoint's Grade, which Rust works out:
     // redraw it when they change.
     if (JSON.stringify(report.milspec.hardpoints) !== JSON.stringify(lastGrades)) {
@@ -924,17 +1104,44 @@ async function discardOk(): Promise<boolean> {
   return ask("Discard the changes to this design?", { title: "ShadowrunBAV", kind: "warning" });
 }
 
-async function saveTo(target: string | null): Promise<void> {
+/** Saves to `target`, or asks where (Save As). True if it was saved. */
+async function saveTo(target: string | null): Promise<boolean> {
   const where = target ?? (await save({ filters: FILTERS, defaultPath: `${design.name || "Vehicle"}.bav` }));
-  if (!where) return;
+  if (!where) return false;
   try {
     await invoke("save_design", { path: where, design });
     path = where;
     saved = JSON.stringify(design);
     showFile();
+    return true;
   } catch (error) {
     await message(String(error), { title: "ShadowrunBAV", kind: "error" });
+    return false;
   }
+}
+
+/**
+ * Closing the window with unsaved changes asks to save them first
+ * (src/closing.ts). Tauri closes the window once the handler finishes,
+ * unless it calls `preventDefault`.
+ */
+function askBeforeClosing(): void {
+  void getCurrentWindow()
+    .onCloseRequested(async (event) => {
+      const close = await mayClose({
+        dirty: isDirty(),
+        path,
+        choose: (text) =>
+          message(text, {
+            title: "ShadowrunBAV",
+            kind: "warning",
+            buttons: { yes: SAVE, no: DONT_SAVE, cancel: CANCEL },
+          }),
+        save: () => saveTo(path),
+      });
+      if (!close) event.preventDefault();
+    })
+    .catch(() => {}); // no window to watch (a plain browser)
 }
 
 const actions: Record<string, () => Promise<void>> = {
@@ -951,8 +1158,12 @@ const actions: Record<string, () => Promise<void>> = {
       await message(String(error), { title: "ShadowrunBAV", kind: "error" });
     }
   },
-  save: () => saveTo(path),
-  saveAs: () => saveTo(null),
+  async save() {
+    await saveTo(path);
+  },
+  async saveAs() {
+    await saveTo(null);
+  },
   async exportPdf() {
     const where = await save({
       filters: [{ name: "PDF", extensions: ["pdf"] }],
@@ -1013,10 +1224,12 @@ actions.checkUpdates = async () => {
 
 async function start(): Promise<void> {
   catalog = await invoke<Catalog>("catalog");
+  loadZoneMap();
   load(newDesign(), null);
   appVersion = await getVersion();
   (document.getElementById("version") as HTMLElement).textContent = `v${appVersion}`;
   startUpdateChecks(showUpdate);
+  askBeforeClosing();
 }
 
 void start();

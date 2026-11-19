@@ -732,3 +732,23 @@ fn a_sheet_is_written_to_its_file() {
     assert!(std::fs::read(&path).unwrap().starts_with(b"%PDF"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+// The vehicle's picture.
+
+#[test]
+fn a_design_file_keeps_its_picture_and_an_older_file_has_none() {
+    let d = Design { image: "data:image/jpeg;base64,/9j/4AAQ".into(), ..Design::default() };
+    assert_eq!(crate::files::from_text(&crate::files::to_text(&d)).unwrap(), d);
+    assert!(crate::files::from_text("format = 1\nchassis = \"car\"\n").unwrap().image.is_empty());
+    assert!(evaluate(&d, Catalog::builtin()).unwrap().problems.is_empty());
+}
+
+#[test]
+fn a_picture_must_be_a_png_or_jpeg_and_not_too_big() {
+    let svg = Design { image: "data:image/svg+xml;base64,PHN2Zz4=".into(), ..Design::default() };
+    let r = evaluate(&svg, Catalog::builtin()).unwrap();
+    assert!(r.problems.iter().any(|p| p.starts_with("The picture isn't a PNG or JPEG")));
+    let huge = format!("data:image/png;base64,{}", "A".repeat(crate::design::IMAGE_LIMIT));
+    let big = Design { image: huge, ..Design::default() };
+    assert!(big.image_problem().is_some_and(|p| p.starts_with("The picture is too big")));
+}

@@ -29,12 +29,13 @@ The first `tauri dev` compiles everything and takes a few minutes.
 - `data/mods.toml`: the mods ("Making It Yours"), with what each field means at its top.
 - `crates/bav-core/src/`: `catalog.rs` (the tables), `design.rs` (a design), `calc.rs` (the calculations), `mods.rs` (the mods on a design), `milspec.rs` (Deadly Arts' mil-spec options), `block.rs` (the stat block, as in ShadowrunEdit), `files.rs` (`.bav` files), `pdf.rs` (the PDF vehicle sheet), `tests.rs`, `mod_tests.rs`, `milspec_tests.rs`, and `book_tests.rs`.
 - `src-tauri/`: the window and its Tauri commands.
-- `src/`: the UI (`main.ts`), its text helpers (`format.ts`), update checks (`updater.ts`), and the JSON shapes shared with Rust (`types.ts`, kept in step with the Rust structs).
+- `src/`: the UI (`main.ts`), its text helpers (`format.ts`), update checks (`updater.ts`), the mod picker's zones (`zones.ts`), the vehicle's picture (`picture.ts`), and the JSON shapes shared with Rust (`types.ts`, kept in step with the Rust structs).
 
 ## Commands
 
 - Run the app: `npm run tauri dev`.
 - Rust tests: `cargo test -p bav-core`.
+- The vehicle drawing: open `scripts/vehicle-art.html` in a browser and save its three pictures into `public/vehicles/` (the page says which is which).
 - UI tests: `npm test`. Type check: `npm run typecheck`. Lint: `npm run lint`.
 - Build an installer: `npm run tauri build` (NSIS and MSI, in `target/release/bundle/`). A release is signed for updates: see `RELEASING.md`.
 - Print the catalog and a sample report as JSON (to check the UI outside the app): `cargo run -p bav-core --example report_json`.

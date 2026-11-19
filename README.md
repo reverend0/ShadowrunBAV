@@ -13,7 +13,7 @@ Design a vehicle from scratch ("Build Your Dream", pp. 147–157), mod it ("Maki
 
 **Design.** Pick a chassis, powertrain, and console, then add design options (forward or in reverse), design modifications, and quality factors. The app works out the stats, step by step where it matters (the speed calculation), the Build Points line by line, the price, the Availability, and the Engineering + Logic tests to design and build it.
 
-**Mod.** Add any of the chapter's mods: accessories, chassis, skin, powertrain, secondary propulsion, electronics, hardpoints, and the devices on them. Install each afterward (shop price or do-it-yourself, with its install test) or build it into the design (2 Build Points a slot). The app keeps the mod slots, hardpoints, and cargo space in check, and the stat line follows the mods that change it.
+**Mod.** Pick mods by clicking a part of a vehicle wireframe, its zones tinted and filling as you go. Add any of the chapter's mods: accessories, chassis, skin, powertrain, secondary propulsion, electronics, hardpoints, and the devices on them. Install each afterward (shop price or do-it-yourself, with its install test) or build it into the design (2 Build Points a slot). The app keeps the mod slots, hardpoints, and cargo space in check, and the stat line follows the mods that change it.
 
 **Arm.** Type in the vehicle's weapons and fit each in a weapon mount, which sets its ammunition and adds 2 to its Attack Ratings.
 

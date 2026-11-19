@@ -43,6 +43,31 @@ pub struct Design {
     pub books: Vec<String>,
     /// Deadly Arts' mil-spec design options (pp. 150–152).
     pub milspec: MilSpec,
+    /// A picture of the vehicle, shown above its stat block: a PNG or JPEG
+    /// as a data URL ("data:image/jpeg;base64,…"), kept in the file so it
+    /// travels with the design. Empty for none.
+    pub image: String,
+}
+
+/// The longest picture a design keeps: the window shrinks pictures well
+/// below this, so only a hand-edited file comes near it.
+pub const IMAGE_LIMIT: usize = 3_000_000;
+
+impl Design {
+    /// What's wrong with the design's picture, if anything: only a PNG or
+    /// JPEG data URL, and not too big.
+    pub fn image_problem(&self) -> Option<String> {
+        let image = self.image.as_str();
+        if image.is_empty() {
+            None
+        } else if !(image.starts_with("data:image/png;base64,") || image.starts_with("data:image/jpeg;base64,")) {
+            Some("The picture isn't a PNG or JPEG; it's left out.".into())
+        } else if image.len() > IMAGE_LIMIT {
+            Some("The picture is too big; it's left out. Load a smaller one.".into())
+        } else {
+            None
+        }
+    }
 }
 
 /// Deadly Arts' mil-spec design options (pp. 150–152), an expansion of
@@ -208,6 +233,7 @@ impl Default for Design {
             built_in_uses_slots: true,
             books: Vec::new(),
             milspec: MilSpec::default(),
+            image: String::new(),
         }
     }
 }

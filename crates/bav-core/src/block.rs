@@ -1,6 +1,7 @@
 //! The vehicle's stat block, laid out as ShadowrunEdit's `sr6-vehicle`
 //! block is: the title and type, the main row, a gamemaster's derived row,
-//! then labeled lines (Standard Equipment or Equipment, and Weapons). The
+//! then labeled lines (Standard Equipment or Equipment for what's built in,
+//! Modifications for what's installed afterward, and Weapons). The
 //! report shows it, Copy pastes it into ShadowrunEdit, and the PDF prints it.
 
 use serde::Serialize;
@@ -66,10 +67,17 @@ pub fn build(design: &Design, report: &Report, catalog: &Catalog, chassis: &Chas
     });
 
     let mut lines = Vec::new();
-    let equipment = equipment_entries(design, catalog, &report.milspec);
+    // What's built into the design is its standard equipment; mods
+    // installed afterward are its modifications (decided), as ShadowrunEdit's
+    // vehicle block has both lines.
+    let equipment = equipment_entries(design, catalog, &report.milspec, true);
     if !equipment.is_empty() {
         let label = if gear { "Standard Equipment" } else { "Equipment" };
         lines.push(BlockLine { label: label.into(), entries: equipment, one_per_line: false });
+    }
+    let modifications = equipment_entries(design, catalog, &report.milspec, false);
+    if !modifications.is_empty() {
+        lines.push(BlockLine { label: "Modifications".into(), entries: modifications, one_per_line: false });
     }
     let mut weapons: Vec<String> = design.weapons.iter().map(weapon_line).collect();
     weapons.sort_by_key(|w| w.to_lowercase());
@@ -90,11 +98,13 @@ pub fn build(design: &Design, report: &Report, catalog: &Catalog, chassis: &Chas
 /// The mods as a stat block lists them: in name order, in lowercase but for
 /// the first (and acronyms and names), with a rating after and a count or
 /// note in parentheses: "Realistic features 4, standard weapon mount (2)".
-/// Deadly Arts' mil-spec options are listed with them when it's on.
-fn equipment_entries(design: &Design, catalog: &Catalog, milspec: &Outcome) -> Vec<String> {
+/// `built_in` picks the mods built into the design (with Deadly Arts'
+/// mil-spec options, when it's on) or those installed afterward.
+fn equipment_entries(design: &Design, catalog: &Catalog, milspec: &Outcome, built_in: bool) -> Vec<String> {
     let mut entries: Vec<String> = design
         .mods
         .iter()
+        .filter(|inst| inst.built_in == built_in)
         .filter_map(|inst| {
             let def = catalog.vehicle_mod(&inst.id)?;
             // A mod from a book the design has turned off is left out.
@@ -118,7 +128,7 @@ fn equipment_entries(design: &Design, catalog: &Catalog, milspec: &Outcome) -> V
             Some(entry)
         })
         .collect();
-    if milspec.military {
+    if built_in && milspec.military {
         entries.extend(milspec_entries(design, milspec));
     }
     entries.sort_by_key(|e| e.to_lowercase());

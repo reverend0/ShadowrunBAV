@@ -493,18 +493,46 @@ fn line<'a>(r: &'a Report, label: &str) -> Option<&'a BlockLine> {
 }
 
 #[test]
-fn every_mod_is_standard_equipment_in_name_order_lowercase_but_the_first() {
-    // Decided: built in or installed afterward, the mods are the vehicle's
-    // standard equipment. A rating follows the name; a count and a note go
-    // in parentheses.
+fn built_in_mods_are_standard_equipment_and_later_ones_modifications() {
+    // Decided: what's built into the design is its standard equipment, and
+    // mods installed afterward its modifications, each in name order, in
+    // lowercase but the first. A rating follows the name; a count and a
+    // note go in parentheses.
     let mut d = with_installed(
         car(),
-        &[("spoof-kit", 0, 1, false), ("standard-weapon-mount", 0, 2, true), ("ram-plating", 2, 1, false)],
+        &[
+            ("spoof-kit", 0, 1, true),
+            ("standard-weapon-mount", 0, 2, true),
+            ("ram-plating", 2, 1, false),
+            ("gridlink", 0, 1, false),
+        ],
     );
     d.mods[1].note = "roof".into();
     let r = run(&d);
     let equipment = line(&r, "Standard Equipment").expect("a Standard Equipment line");
-    assert_eq!(equipment.entries, ["RAM plating 2", "spoof kit", "standard weapon mount (2, roof)"]);
+    assert_eq!(equipment.entries, ["Spoof kit", "standard weapon mount (2, roof)"]);
+    let modifications = line(&r, "Modifications").expect("a Modifications line");
+    assert_eq!(modifications.entries, ["GridLink", "RAM plating 2"]);
+    // Standard Equipment first, as ShadowrunEdit orders a vehicle's lines.
+    let labels: Vec<&str> = r.block.lines.iter().map(|l| l.label.as_str()).collect();
+    assert_eq!(labels, ["Standard Equipment", "Modifications"]);
+}
+
+#[test]
+fn the_as_built_line_has_the_built_in_mods_and_not_the_later_ones() {
+    // Improved Acceleration 1 built in (+30% of 11 = +4) at 15,000¥; a
+    // nitro boost installed afterward at 5,000¥, Availability 3(I).
+    let d = with_installed(car(), &[("improved-acceleration", 1, 1, true), ("nitro-boost", 0, 1, false)]);
+    let r = run(&d);
+    let plain = run(&car());
+    let built = &r.factory_stat_line.values;
+    assert_eq!(built[1], (plain.stats.acceleration + 4).to_string());
+    assert_eq!(built[10], format!("{}¥", crate::calc::thousands(r.cost)));
+    assert_eq!(r.cost, plain.cost + 2_000 + 15_000); // 2 Build Points a slot
+    assert_eq!(r.stat_line.values[10], format!("{}¥", crate::calc::thousands(r.cost + 5_000)));
+    // The built-in mod's Availability; the nitro boost's only with it.
+    assert_eq!(built[9], "3"); // above the car's 2
+    assert_eq!(r.availability, "3(I)");
 }
 
 #[test]
@@ -519,7 +547,7 @@ fn acronyms_and_names_keep_their_capitals() {
 
 #[test]
 fn a_gear_book_block_has_avail_and_cost_and_standard_equipment() {
-    let r = run(&with(car(), &["spoof-kit"]));
+    let r = run(&with_installed(car(), &[("spoof-kit", 0, 1, true)]));
     assert_eq!(r.block.main.headers.last().map(String::as_str), Some("Cost"));
     assert!(r.block.derived.is_none());
     assert!(line(&r, "Standard Equipment").is_some());
@@ -527,7 +555,7 @@ fn a_gear_book_block_has_avail_and_cost_and_standard_equipment() {
 
 #[test]
 fn a_gamemaster_block_has_a_derived_row_and_equipment() {
-    let mut d = with(car(), &["spoof-kit"]);
+    let mut d = with_installed(car(), &[("spoof-kit", 0, 1, true)]);
     d.layout = Layout::Gamemaster;
     let r = run(&d);
     assert_eq!(r.block.main.headers.last().map(String::as_str), Some("Seat"));
@@ -594,7 +622,7 @@ fn copy_gives_the_block_as_text_to_paste_into_shadowrunedit() {
     assert!(text.starts_with(
         "Getaway Car (car)\nHand\tAccel\tSpd Int\tTop Spd\tBody\tArmor\tPilot\tSensor\tSeat\tAvail\tCost\n"
     ));
-    assert!(text.contains("\nStandard Equipment: Standard weapon mount\nWeapons:\n\tAres Alpha [Assault Rifles"));
+    assert!(text.contains("\nModifications: Standard weapon mount\nWeapons:\n\tAres Alpha [Assault Rifles"));
 }
 
 #[test]
@@ -614,7 +642,7 @@ fn the_sheet_prints_the_block_with_bold_labels() {
     let bytes = crate::pdf::vehicle_sheet(&d, Catalog::builtin()).unwrap();
     let text = String::from_utf8(bytes).unwrap();
     // The label in bold (F2), its entries in regular (F1).
-    assert!(text.contains("/F2 10 Tf") && text.contains(r"(Standard Equipment: ) Tj"));
+    assert!(text.contains("/F2 10 Tf") && text.contains(r"(Modifications: ) Tj"));
     assert!(text.contains(r"(Spoof kit, standard weapon mount \(2\)) Tj"));
     assert!(text.contains("(Weapons:) Tj"));
     assert!(text.contains(r"(Ares Alpha [Assault Rifles, DV 4P, SA/BF/FA, 250\(c\)"));

@@ -1,0 +1,213 @@
+<!doctype html>
+<!--
+  Draws the mod picker's vehicle wireframe, an original SUV-type body built
+  from cross-sections, seen isometrically, with back lines hidden. Open this
+  file in a browser (it loads three.js from cdnjs), then save the three
+  images into public/vehicles/:
+
+    suv-light.png  the drawing for the light theme
+    suv-dark.png   the drawing for the dark theme
+    suv-zones.png  each mod zone in a flat color, which the app reads to tell
+                   which zone was clicked (see ZONE_COLORS in src/zones.ts)
+
+  The theme colors match --panel and --ink in src/styles.css.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vehicle wireframe</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 16px; }
+      canvas { display: block; margin: 8px 0 20px; border: 1px solid #ccc; max-width: 100%; }
+    </style>
+  </head>
+  <body>
+    <div id="out"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      // The pictures' pixel size; the app shows them at half that, so the
+      // lines stay crisp on high-density screens.
+      const W = 1200;
+      const H = 720;
+
+      // Zone tints, as the app's legend shows them.
+      const ZONES = {
+        powertrain: 0xd85a30,
+        electronics: 0x1d9e75,
+        chassis: 0x7f77dd,
+        cargo: 0x888780,
+        hardpoints: 0xba7517,
+      };
+      // Flat colors for the zone map: keep in step with src/zones.ts.
+      const IDS = {
+        powertrain: 0xff0000,
+        electronics: 0x00ff00,
+        chassis: 0x0000ff,
+        cargo: 0xffff00,
+        hardpoints: 0xff00ff,
+      };
+      const THEMES = {
+        light: { bg: 0xffffff, ink: 0x1d1f21, tint: 0.26 },
+        dark: { bg: 0x212427, ink: 0xe6e6e3, tint: 0.34 },
+      };
+
+      const L = 2.35;
+      const WR = 0.42;
+      const WHEELS = [1.45, -1.45];
+      const smooth = (a, b, x) => {
+        const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+        return t * t * (3 - 2 * t);
+      };
+      // The body's bottom, raised over the wheels for the arches.
+      function bottom(x) {
+        let y = 0.3;
+        for (const c of WHEELS) {
+          const d = x - c;
+          const r = 0.53;
+          if (Math.abs(d) < r) y = Math.max(y, 0.42 + Math.sqrt(r * r - d * d));
+        }
+        return y;
+      }
+      // The beltline: low at the nose, rising over the hood to the cowl.
+      const belt = (x) => 0.78 + 0.27 * smooth(2.3, 1.0, x) - 0.06 * smooth(-1.9, -2.35, x);
+      // The roof: the cabin from the windshield back to the tailgate.
+      const roof = (x) => belt(x) + (1.68 - belt(x)) * smooth(0.95, 0.25, x) * smooth(-2.05, -1.55, x);
+      const taper = (x) => Math.max(0, 1 - Math.abs(x / L) ** 6) ** 0.5;
+
+      // One cross-section at x: the side, the shoulder, the cabin, the roof.
+      function section(x) {
+        const k = taper(x);
+        const w = 0.95 * Math.max(k, 0.001);
+        const b = bottom(x);
+        const h = belt(x);
+        const r = roof(x);
+        const cabin = Math.min(1, (r - h) / (1.68 - h + 1e-6));
+        const mid = (b + h) / 2;
+        const squeeze = (y) => mid + (y - mid) * Math.max(k, 0.15);
+        const wr = 0.9 * w + (0.7 * w - 0.9 * w) * cabin;
+        const side = [
+          [-w, b], [-w, b + (h - b) * 0.35], [-w, b + (h - b) * 0.7], [-w, h - 0.04], [-0.96 * w, h],
+          [-wr, h + (r - h) * 0.5], [-wr * 0.97, r - 0.01], [-wr * 0.5, r + 0.03], [0, r + 0.04],
+        ].map(([z, y]) => [z, squeeze(y)]);
+        return side.concat(side.slice(0, -1).reverse().map(([z, y]) => [-z, y]));
+      }
+      const zoneAt = (x, y, h) =>
+        y > h + 0.08 ? (x > -1.75 ? "electronics" : "cargo") : x > 0.98 ? "powertrain" : x < -1.6 ? "cargo" : "chassis";
+
+      function draw(mode) {
+        const ids = mode === "zones";
+        const theme = THEMES[ids ? "light" : mode];
+        const bg = new THREE.Color(theme.bg);
+        const ink = new THREE.Color(theme.ink);
+        const fill = (zone) =>
+          ids ? new THREE.Color(IDS[zone]) : bg.clone().lerp(new THREE.Color(ZONES[zone]), theme.tint);
+
+        const scene = new THREE.Scene();
+        const s = 1.6;
+        const cam = new THREE.OrthographicCamera((-s * W) / H, (s * W) / H, s, -s, 0.1, 100);
+        cam.position.set(6, 4.6, 6);
+        cam.lookAt(0, 0.75, 0);
+        const canvas = document.createElement("canvas");
+        const ren = new THREE.WebGLRenderer({ canvas, antialias: !ids, alpha: true, preserveDrawingBuffer: true });
+        ren.setPixelRatio(1);
+        ren.setSize(W, H, false);
+
+        const NU = 52;
+        const NV = 17;
+        // The grid of points: NU + 1 sections of NV points each.
+        const grid = [];
+        for (let i = 0; i <= NU; i++) {
+          const x = L - (2 * L * i) / NU;
+          grid.push(section(x).map(([z, y]) => [x, y, z]));
+        }
+        // Each panel (a quad of the grid) takes one zone's color, from its
+        // middle, so zones meet at panel edges rather than blending.
+        const pos = [];
+        const col = [];
+        const lines = [];
+        for (let i = 0; i < NU; i++) {
+          for (let j = 0; j < NV - 1; j++) {
+            const a = grid[i][j];
+            const b = grid[i + 1][j];
+            const c = grid[i + 1][j + 1];
+            const d = grid[i][j + 1];
+            const x = (a[0] + b[0]) / 2;
+            const y = (a[1] + b[1] + c[1] + d[1]) / 4;
+            const color = fill(zoneAt(x, y, belt(x)));
+            for (const p of [a, b, c, a, c, d]) {
+              pos.push(...p);
+              col.push(color.r, color.g, color.b);
+            }
+          }
+        }
+        for (let i = 0; i <= NU; i++) for (let j = 0; j < NV - 1; j++) lines.push(...grid[i][j], ...grid[i][j + 1]);
+        for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) lines.push(...grid[i][j], ...grid[i + 1][j]);
+
+        const body = new THREE.BufferGeometry();
+        body.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+        body.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+        // The fills sit a little behind the lines, so the lines in front
+        // show and the ones behind are hidden.
+        const behind = { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 };
+        scene.add(new THREE.Mesh(body, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, ...behind })));
+
+        const thin = new THREE.LineBasicMaterial({ color: ink, transparent: true, opacity: 0.55 });
+        const strong = new THREE.LineBasicMaterial({ color: ink });
+        if (!ids) {
+          const grid = new THREE.BufferGeometry();
+          grid.setAttribute("position", new THREE.Float32BufferAttribute(lines, 3));
+          scene.add(new THREE.LineSegments(grid, thin));
+          scene.add(new THREE.LineSegments(new THREE.EdgesGeometry(body, 35), strong));
+        }
+
+        function solid(geo, zone, place) {
+          const group = new THREE.Group();
+          group.add(new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: fill(zone), ...behind })));
+          if (!ids) group.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 20), thin));
+          place(group);
+          scene.add(group);
+        }
+        for (const x of WHEELS) {
+          for (const side of [1, -1]) {
+            solid(new THREE.CylinderGeometry(WR, WR, 0.3, 28, 2), "powertrain", (g) => {
+              g.rotation.x = Math.PI / 2;
+              g.position.set(x, WR, side * 0.86);
+            });
+            if (ids) continue;
+            const pts = [];
+            for (let a = 0; a < 28; a++) {
+              const t = (a / 28) * Math.PI * 2;
+              const t2 = ((a + 1) / 28) * Math.PI * 2;
+              pts.push(new THREE.Vector3(Math.cos(t) * 0.27, Math.sin(t) * 0.27, 0));
+              pts.push(new THREE.Vector3(Math.cos(t2) * 0.27, Math.sin(t2) * 0.27, 0));
+            }
+            for (let k = 0; k < 10; k++) {
+              const t = (k / 10) * Math.PI * 2;
+              pts.push(new THREE.Vector3(Math.cos(t) * 0.06, Math.sin(t) * 0.06, 0));
+              pts.push(new THREE.Vector3(Math.cos(t) * 0.27, Math.sin(t) * 0.27, 0));
+            }
+            const spokes = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), strong);
+            spokes.position.set(x, WR, side * (0.86 + 0.151));
+            scene.add(spokes);
+          }
+        }
+        solid(new THREE.CylinderGeometry(0.2, 0.24, 0.14, 16, 1), "hardpoints", (g) => g.position.set(-0.55, 1.79, 0));
+        solid(new THREE.BoxGeometry(0.55, 0.07, 0.07), "hardpoints", (g) => g.position.set(-0.2, 1.83, 0));
+
+        ren.setClearColor(0x000000, 0);
+        ren.render(scene, cam);
+        return canvas;
+      }
+
+      for (const mode of ["light", "dark", "zones"]) {
+        const canvas = draw(mode);
+        canvas.id = mode;
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = `suv-${mode}.png`;
+        link.textContent = `Save suv-${mode}.png`;
+        document.getElementById("out").append(link, canvas);
+      }
+    </script>
+  </body>
+</html>

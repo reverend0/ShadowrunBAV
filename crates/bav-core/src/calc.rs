@@ -42,7 +42,8 @@ pub struct Report {
     /// The SR6 vehicle stat line, as a header row and a value row: the
     /// vehicle with its mods, at the price with all of them.
     pub stat_line: StatLine,
-    /// The stat line as designed, before any mods.
+    /// The stat line as built: the design with the mods built into it, at
+    /// its price, before any mods installed afterward.
     pub factory_stat_line: StatLine,
     /// The vehicle's price plus the mods installed afterward, at a shop.
     pub total_cost: i64,
@@ -260,6 +261,10 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
              (only a large drone can be made bigger)."
                 .into(),
         );
+    }
+
+    if let Some(problem) = design.image_problem() {
+        problems.push(problem);
     }
 
     // Deadly Arts' mil-spec design options, when the design turns it on.
@@ -546,7 +551,8 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     if is_aircraft {
         availability += 1;
     }
-    let vehicle_availability = availability_text(availability, legality);
+    // The vehicle's own, for the as-built line below.
+    let (vehicle_availability, vehicle_legality) = (availability, legality);
     // With mods, the highest of the vehicle's and the mods' (p. 155).
     if mods_report.availability > availability {
         availability = mods_report.availability;
@@ -632,9 +638,21 @@ pub fn evaluate(design: &Design, catalog: &Catalog) -> Result<Report, String> {
     // the factory line is the design alone.
     let total_cost = cost + mods_report.aftermarket_cost;
     let stat_line = stat_line_of(&modded, is_drone, &availability, total_cost);
-    // As designed, the mil-spec frame's Body included.
-    let designed = mods::Vehicle { body: body + milspec.frame_body, ..factory.clone() };
-    let factory_stat_line = stat_line_of(&designed, is_drone, &vehicle_availability, cost - mods_report.built_in_cost);
+    // As built: the design with only its built-in mods (and the mil-spec
+    // frame's Body), at the vehicle's price. Their problems and notes are
+    // already in the full run's, so this run's are dropped.
+    let built: Vec<_> = design.mods.iter().filter(|m| m.built_in).cloned().collect();
+    let (as_built, built_report) = mods::apply(&built, catalog, &context, &factory, &mut Vec::new(), &mut Vec::new());
+    // With no built-in mods, the report's Availability is 0, below the vehicle's.
+    let built_availability = vehicle_availability.max(built_report.availability);
+    let mut built_legality = vehicle_legality;
+    if let Some(code) = built_report.legality.as_deref()
+        && (built_legality.is_none() || code == "I")
+    {
+        built_legality = Some(code);
+    }
+    let factory_stat_line =
+        stat_line_of(&as_built, is_drone, &availability_text(built_availability, built_legality), cost);
     let m = &modded;
 
     let mut report = Report {

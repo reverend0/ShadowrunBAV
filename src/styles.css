@@ -380,3 +380,115 @@ summary {
 .weapon .field {
   margin: 4px 0;
 }
+
+/* The mod picker: the vehicle drawing, its zones, and the zone's mods. */
+
+.vehicle {
+  position: relative;
+  margin: 4px 0 6px;
+}
+
+.vehicle img,
+.vehicle canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.vehicle canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.vehicle img.dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .vehicle img.light {
+    display: none;
+  }
+  .vehicle img.dark {
+    display: block;
+  }
+}
+
+.zone-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.zone-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 3px 8px;
+}
+
+.zone-chip .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.zone-chip .zone-usage {
+  color: var(--muted);
+}
+
+.zone-chip.selected {
+  border-color: var(--ink);
+  font-weight: 600;
+}
+
+.zone-chip.over .zone-usage {
+  color: var(--accent);
+}
+
+.zone-mod {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.zone-mod .mod-name {
+  flex: 1;
+}
+
+.zone-mod .hint {
+  margin: 0;
+  text-align: right;
+}
+
+.zone-mod.off {
+  color: var(--muted);
+}
+
+.mod-detail {
+  padding-left: 24px;
+}
+
+/* The vehicle's picture, above the stat block. */
+
+.picture {
+  margin-bottom: 12px;
+}
+
+.picture img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 6px;
+}
+
+.picture-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}

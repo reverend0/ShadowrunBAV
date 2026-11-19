@@ -27,10 +27,11 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
 
 ## The window
 
-- Left: the design. Name; Books (a box per book beyond Double Clutch); Base (chassis grouped by ground, water, air, drones; powertrain grouped by medium; console, and the stat block's layout), each option's label carrying its numbers; Design options, a level per functional improvement (a negative level is the improvement in reverse); Design modifications (engine type and Heavy Duty/Lightweight as radio buttons, the rest checkboxes); Quality factors (production and Security/Military as radio buttons; Environmental Adaptation asks for its environment and Specialized Function for what it's for); Mil-spec, when Deadly Arts is on (see "Other books"); Mods (whether built-in mods use mod slots; Add picks one from a list grouped as the chapter is; each has its rating, a count for those installed more than once, Built in, a note, and ×); Weapons (each typed in: name, type, DV, firing modes, five Attack Ratings, its own mods, and the weapon mount it's in, from the vehicle's; Add a weapon puts a new one in the first mount); Notes.
-- Right, recalculated on every change: the stat block (see "The stat block"), with Copy, and under it, when there are mods, the stat line as designed; problems in red; Size Class, cargo, speed modifier, and mod slots; notes on what comes with the choices; the speed calculation step by step; the Build Points line by line with the multipliers; and price, Availability, the design test, the parts' price, and the build test; then the mods: each with its slots (and CF), Availability, price, and its do-it-yourself price and install test (or its Build Points, built in), then the slots used of each category's, the hardpoints, the skin's form, cargo taken, a secondary propulsion's stats, and the prices.
+- Left: the design. Name; Books (a box per book beyond Double Clutch); Base (chassis grouped by ground, water, air, drones; powertrain grouped by medium; console, and the stat block's layout), each option's label carrying its numbers; Design options, a level per functional improvement (a negative level is the improvement in reverse); Design modifications (engine type and Heavy Duty/Lightweight as radio buttons, the rest checkboxes); Quality factors (production and Security/Military as radio buttons; Environmental Adaptation asks for its environment and Specialized Function for what it's for); Mil-spec, when Deadly Arts is on (see "Other books"); Mods (whether built-in mods use mod slots, then the mod picker: see "Picking mods"); Weapons (each typed in: name, type, DV, firing modes, five Attack Ratings, its own mods, and the weapon mount it's in, from the vehicle's; Add a weapon puts a new one in the first mount); Notes.
+- Right, recalculated on every change: the vehicle's picture, if it has one (Add a picture…, Change picture…, Remove picture); the stat block (see "The stat block"), with Copy, and under it, when mods are installed afterward, the stat line as built (the design with its built-in mods, at its price and their Availability); problems in red; Size Class, cargo, speed modifier, and mod slots; notes on what comes with the choices; the speed calculation step by step; the Build Points line by line with the multipliers; and price, Availability, the design test, the parts' price, and the build test; then the mods: each with its slots (and CF), Availability, price, and its do-it-yourself price and install test (or its Build Points, built in), then the slots used of each category's, the hardpoints, the skin's form, cargo taken, a secondary propulsion's stats, and the prices.
 - A design that breaks a rule still calculates; the problems say what to fix.
 - New, Open, Save, Save As, Export PDF (Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+P). Unsaved changes show as a dot after the file name, and New or Open asks before discarding them.
+- Closing the window with unsaved changes asks first, “Save your changes to “Raptor.bav” before closing?” (“this design” when it has no file yet), with Save (Save As for a design without a file; the window stays open if that's cancelled or fails), Don’t Save, and Cancel (`src/closing.ts`). New and Open already ask before discarding changes.
 - Export PDF writes a vehicle sheet (`pdf.rs`), US Letter, laid out like the book's vehicle entries: the name in bold, the type in italic parentheses (the chassis in lowercase, acronyms kept, `medium drone` for a drone chassis, a Specialized Function after a comma), then the stat block: its rows, their headers as the book prints them (`HAND ACC SPD/INT TOP/SPD BODY ARM PILOT SENS SEAT AVAIL COST`, SPD over INT; `DR I/ID AC CM` for a gamemaster) white on a dark band, and its lines with their labels bold, weapons one per line under "Weapons:"; then a secondary propulsion's stats, and the Notes as the description. A Design section follows: the Build Points line by line, the quality factors and Build Point Value, Size Class, cargo, and mod slots, the price, parts, and Availability, the design and build tests, the notes on what comes with the choices, and any problems. The PDF is written by hand in the standard Helvetica fonts, so no font is embedded and nothing is added to the dependencies. Only `.pdf` files are written, through a temporary file like a design.
 
 ## Updates
@@ -39,6 +40,25 @@ A Windows app for designing vehicles and drones from scratch by the rules of Sha
 - The toolbar also shows the version and Check for updates, which checks right away and says what it found.
 - Updates are signed with the project's own key (Tauri's updater, not code signing), and the app installs only an update that matches the public key it ships with. Each release carries `latest.json`, the installers, and their signatures (`RELEASING.md`). Drafts and pre-releases are never offered, since GitHub's "latest" release skips them.
 - Version 0.1.1 has no updater, so its users install the next version by hand.
+
+## The vehicle's picture
+
+A picture the player loads (PNG, JPEG, or WebP) shows above the stat block. It's kept in the design file as a data URL (decided, 2026-11-19), so it travels with the design: shrunk to 1,000 pixels on its longest side, a PNG kept as a PNG (for its transparency) and anything else saved as a JPEG (`src/picture.ts`). A file's picture that isn't a PNG or JPEG data URL, or is over 3 MB, is left out and flagged. The PDF sheet doesn't print it.
+
+## Picking mods
+
+The Mods section shows a wireframe of a vehicle, isometric, with its mod zones tinted (decided, 2026-11-19). Each zone is one of the chapter's groups and the budget it draws on (p. 120):
+
+- Chassis (chassis and skin mods): the body.
+- Powertrain (powertrain and secondary propulsion): the hood and wheels.
+- Electronics: the cabin.
+- Seating and cargo: the rear.
+- Hardpoints (hardpoints and the devices on them): the roof mount.
+- Accessories use no slots, so they're a chip under the drawing, not a part of it.
+
+Clicking a part of the drawing, or its chip, lists that zone's mods, each with its slots and price; ticking one adds it (at its lowest rating) and shows its rating, count, Built in, note, and ×, and unticking removes it. Each chip shows how full its zone is ("3 of 10 slots", hardpoints, CF of cargo), red when it's over. A book's mods are listed when the book is on, or when the design already has them, marked so.
+
+- One drawing for every vehicle for now, an original SUV-type body built in code (`scripts/vehicle-art.html`, three.js in a browser), saved as pictures in `public/vehicles/`: one for the light theme, one for the dark, and a zone map in flat colors that the window reads to tell which zone was clicked (`src/zones.ts`). The app itself needs no 3D library. Other kinds of vehicle (bike, boat, aircraft, drone) can get their own drawings later.
 
 ## The rules as calculated
 
@@ -74,8 +94,8 @@ All division rounds down unless noted.
 
 The vehicle as ShadowrunEdit's `sr6-vehicle` block lays it out (`block.rs`), so it reads the same in both apps, and Copy pastes it into ShadowrunEdit (or a document): the title with its type in parentheses, the rows tab-separated, then the lines.
 
-- Two layouts, chosen per design, as ShadowrunEdit's modes are (decided): Gear book, the main row with Avail and Cost, and the mods as "Standard Equipment"; or Gamemaster, the main row without them, a second row (DR `+Armor (Armor + Pilot)`; a drone's own I/ID Pilot × 2 with 4D6 and AC A1, I5, a vehicle's an em dash since it uses its driver's; CM Body ÷ 2 rounded up + 8), and the mods as "Equipment". A file without a layout is Gear book.
-- Every mod, built in or installed afterward, is on that line (decided): in name order, in lowercase but for the first entry and acronyms and names (RAM, ECM, GridLink, xGuide, Valkyrie), a rating after the name, and a count and note in parentheses: `RAM plating 2, spoof kit, standard weapon mount (2, roof)`.
+- Two layouts, chosen per design, as ShadowrunEdit's modes are (decided): Gear book, the main row with Avail and Cost, and the built-in mods as "Standard Equipment"; or Gamemaster, the main row without them, a second row (DR `+Armor (Armor + Pilot)`; a drone's own I/ID Pilot × 2 with 4D6 and AC A1, I5, a vehicle's an em dash since it uses its driver's; CM Body ÷ 2 rounded up + 8), and the built-in mods as "Equipment". A file without a layout is Gear book.
+- Mods built into the design (and Deadly Arts' mil-spec options) are on that line, and mods installed afterward on a "Modifications" line after it, as ShadowrunEdit's vehicle block has both (decided, 2026-11-19; until then every mod was standard equipment). Each in name order, in lowercase but for the first entry and acronyms and names (RAM, ECM, GridLink, xGuide, Valkyrie), a rating after the name, and a count and note in parentheses: `RAM plating 2, spoof kit, standard weapon mount (2, roof)`.
 - Weapons: one per line under "Weapons:", in name order, as ShadowrunEdit writes them: `Ares Alpha [Assault Rifles, DV 4P, SA/BF/FA, 250(c), 5/12/11/8/4, w/ smartgun system] (standard mount)`. They're typed in (decided; no weapon list ships with the app). The mount sets the ammunition (small 100(c), standard 250(c), large 500(b)) and adds 2 to each Attack Rating in range (p. 142); an Attack Rating of 0 is out of range, an em dash. Each weapon needs a weapon mount, one weapon to a mount, and more weapons in a kind of mount than the vehicle has of it is flagged. The mount's own hardpoint is checked with the mods.
 
 ## Mods
@@ -123,7 +143,7 @@ Every place the book disagrees with itself or with its examples, what the app do
 ## Testing
 
 - `cargo test -p bav-core`: a test per rule, named after it, the book's three examples (as decided above, Examples 1 and 3 again with their mods), every chassis × powertrain × console combination, every mod on a car and a drone, Deadly Arts' options and turning it on and off (`milspec_tests.rs`), the smaller books' mods and packs (`book_tests.rs`), and design files saved and reopened.
-- `npm test`: the UI's text helpers and the update checks.
+- `npm test`: the UI's text helpers, the mod picker's zones, and the update checks.
 - Test data is made up; the book's examples are restated as numbers only.
 
 ## Future features

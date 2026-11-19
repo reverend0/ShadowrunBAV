@@ -63,6 +63,12 @@ export interface VehicleMod {
   rating_min: number | null;
   rating_max: number | null;
   many: boolean;
+  slots: number;
+  slots_per_rating: number;
+  cf: number;
+  cf_per_rating: number;
+  cost: number;
+  cost_per_rating: number;
   /** The sourcebook it's from, when it isn't Double Clutch. */
   book: string | null;
 }
@@ -129,6 +135,8 @@ export interface Design {
   /** Sourcebooks turned on for this design ("deadly-arts"). */
   books: string[];
   milspec: MilSpec;
+  /** A PNG or JPEG data URL of the vehicle, or empty. */
+  image: string;
 }
 
 /** Deadly Arts' mil-spec design options (pp. 150–152). */
@@ -192,6 +200,8 @@ export interface Report {
     length: string;
     weight: string;
     cargo: string;
+    /** Cargo space left after the mods take theirs. */
+    cargo_cf: number;
     acceleration: number;
     speed_interval: number;
     top_speed: number;
@@ -287,5 +297,6 @@ export function newDesign(): Design {
     built_in_uses_slots: true,
     books: [],
     milspec: { airframe_plate: false, heavy_plate: 0, comms: 0, frame: 0, hardpoints: [] },
+    image: "",
   };
 }
